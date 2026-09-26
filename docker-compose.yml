@@ -1,0 +1,14 @@
+# Serves mockups/ (the v2.html game prototype, guide.html, brochure.html, ...) with caddy,
+# the same way as the hand-started `clipper-mockups` container: http://yurt.local:8013
+#   docker compose up -d
+# Port override (e.g. to test next to the running container): CLIPPER_PORT=18013 docker compose up -d
+services:
+  mockups:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "${CLIPPER_PORT:-8013}:80"
+    volumes:
+      - ./mockups/Caddyfile.mockups:/etc/caddy/Caddyfile:ro
+      - ./mockups:/srv:ro
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

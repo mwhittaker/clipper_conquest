@@ -1,0 +1,1333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipper Conquest — layout v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  :root {
+    --fog: #C42847;
+    --surf: #1D6FB8;
+    --ink: #1C1E21;
+    --muted: #6A7076;
+    --line: #D9DDE1;
+    --bg: #FFFFFF;
+    --open-fill: #E8EAEC;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: system-ui, sans-serif;
+    color: var(--ink); background: var(--bg);
+    display: flex; flex-direction: column;
+    max-width: 560px; margin: 0 auto;
+    height: 100dvh; overflow: hidden;
+  }
+
+  /* ---------- score header ---------- */
+  header {
+    flex: none; display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center; gap: 8px;
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .team { display: flex; align-items: center; gap: 8px; }
+  .team.surf { justify-content: flex-end; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .team .label { font-size: 13px; color: var(--muted); line-height: 1.2; }
+  .team .label b { display: block; color: var(--ink); font-size: 14px; }
+  .team .count { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mid { text-align: center; }
+  .clock { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ---------- map ---------- */
+  #map-wrap { flex: 1; min-height: 0; position: relative; }
+  #map { width: 100%; height: 100%; display: block; touch-action: none; }
+  #map polygon, #map path { stroke: #fff; stroke-width: 1.2px; vector-effect: non-scaling-stroke; cursor: pointer; }
+  #map .open,  #minimap .open  { fill: var(--open-fill); }
+  #map .fog,   #minimap .fog   { fill: var(--fog); }
+  #map .surf,  #minimap .surf  { fill: var(--surf); }
+  #map path:focus-visible { outline: none; stroke: var(--ink); stroke-width: 6; }
+  #map .badge {
+    font-size: var(--badge-size, 22px); font-weight: 700; fill: #fff;
+    paint-order: stroke; stroke: rgba(0,0,0,.45); stroke-width: var(--badge-stroke, 4px);
+    text-anchor: middle; pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+  #map .hood-name {
+    font-size: var(--name-size, 26px); font-weight: 600; fill: #fff;
+    paint-order: stroke; stroke: rgba(0,0,0,.4); stroke-width: var(--name-stroke, 3.5px);
+    text-anchor: middle; pointer-events: none;
+    opacity: 0; transition: opacity .15s;
+  }
+  #map .hood-name.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { #map .hood-name { transition: none; } }
+  footer {
+    flex: none; display: flex; align-items: center; gap: 16px;
+    padding: 10px 14px; border-top: 1px solid var(--line);
+    font-size: 15px; color: var(--muted);
+  }
+  footer button {
+    font: inherit; color: var(--muted); background: none; border: none;
+    text-decoration: underline; cursor: pointer; padding: 4px;
+  }
+  #me {
+    flex: none; width: 42px; height: 42px; border-radius: 50%; padding: 0;
+    font-size: 18px; font-weight: 700; text-decoration: none;
+    background: var(--open-fill); color: var(--ink);
+  }
+  #me.me-fog { background: var(--fog); color: #fff; }
+  #me.me-surf { background: var(--surf); color: #fff; }
+  #me:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  #view-toggle { flex: 1; display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  #view-toggle button {
+    flex: 1; text-decoration: none; padding: 11px 0; font-weight: 600;
+    color: var(--muted); border-radius: 0;
+  }
+  #view-toggle button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  #view-toggle button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+  /* ---------- list & timeline views ---------- */
+  #rules, #timeline { flex: 1; min-height: 0; overflow-y: auto; display: none; }
+  body.rulesview #rules { display: block; }
+  body.tlview #timeline { display: block; }
+  body.rulesview #map-wrap, body.tlview #map-wrap { display: none; }
+  #rules { padding: 18px 18px 28px; }
+  #rules h2 { font-size: 20px; margin: 0 0 12px; }
+  #rules ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; }
+  #rules li { font-size: 15px; line-height: 1.45; color: var(--muted); }
+  #rules li b { color: var(--ink); }
+  #rules .enc { font-size: 15px; line-height: 1.45; color: var(--muted); margin-top: 16px; }
+  #rules .enc b { color: var(--ink); }
+  .trow {
+    display: flex; align-items: baseline; gap: 10px; width: 100%;
+    padding: 12px 16px; border: none; border-bottom: 1px solid var(--line);
+    background: none; font: inherit; font-size: 15px; color: var(--ink);
+    cursor: pointer; text-align: left; line-height: 1.4;
+  }
+  .trow:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+  .trow .tm { flex: none; width: 68px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .trow .tx { flex: 1; }
+  .trow .tx b.hood { font-weight: 600; }
+  .trow.takeover .tx { font-weight: 600; }
+  .trow .tframe {
+    width: 44px; height: 44px; border-radius: 6px; overflow: hidden;
+    flex: none; align-self: center;
+  }
+  .trow .tframe img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tl-empty { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+  .cf { color: var(--fog); font-weight: 700; }
+  .cs { color: var(--surf); font-weight: 700; }
+  #score-fog { color: var(--fog); }
+  #score-surf { color: var(--surf); }
+
+  /* ---------- join / profile screen ---------- */
+  #join {
+    position: fixed; inset: 0; z-index: 30; background: var(--bg);
+    display: none; align-items: center; justify-content: center;
+    padding: 24px; overflow-y: auto;
+  }
+  #join.show { display: flex; }
+  .join-card { width: 100%; max-width: 340px; }
+  .join-card h1 { font-size: 26px; font-weight: 800; }
+  .join-sub { color: var(--muted); font-size: 15px; margin: 6px 0 26px; }
+  .join-label { display: block; font-size: 13px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .04em; margin: 18px 0 8px; }
+  #join-name {
+    width: 100%; font: inherit; font-size: 17px; padding: 12px 14px;
+    border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--bg);
+  }
+  #join-name:focus-visible { outline: 2px solid var(--ink); }
+  .join-teams { display: flex; gap: 10px; }
+  .tbtn {
+    flex: 1; font: inherit; font-size: 17px; font-weight: 700; padding: 16px 0;
+    border-radius: 10px; cursor: pointer; background: var(--bg);
+  }
+  .tbtn.tf { border: 2px solid var(--fog); color: var(--fog); }
+  .tbtn.ts { border: 2px solid var(--surf); color: var(--surf); }
+  .tbtn.tf[aria-pressed="true"] { background: var(--fog); color: #fff; }
+  .tbtn.ts[aria-pressed="true"] { background: var(--surf); color: #fff; }
+  .tbtn:focus-visible, #join-go:focus-visible, #join-reset:focus-visible {
+    outline: 2px solid var(--ink); outline-offset: 2px; }
+  #join-go {
+    width: 100%; margin-top: 26px; font: inherit; font-size: 17px; font-weight: 600;
+    padding: 14px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--ink); background: var(--ink); color: #fff;
+  }
+  #join-go:disabled { background: var(--line); border-color: var(--line); color: var(--muted); cursor: default; }
+  .join-note { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 16px; }
+  #join-reset {
+    font: inherit; font-size: 13px; color: var(--muted); background: none; border: none;
+    text-decoration: underline; cursor: pointer; padding: 4px; margin-top: 22px;
+  }
+
+  /* ---------- neighborhood detail (full screen) ---------- */
+  #detail {
+    position: fixed; inset: 0; background: var(--bg);
+    max-width: 560px; margin: 0 auto;
+    display: none; flex-direction: column; z-index: 10;
+  }
+  #detail.show { display: flex; }
+  #panel { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  #panel.slide-left  { animation: fromRight .18s ease-out; }
+  #panel.slide-right { animation: fromLeft  .18s ease-out; }
+  @keyframes fromRight { from { transform: translateX(40px);  opacity: .3; } to { transform: none; opacity: 1; } }
+  @keyframes fromLeft  { from { transform: translateX(-40px); opacity: .3; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    #panel.slide-left, #panel.slide-right { animation: none; }
+  }
+
+  .det-top {
+    flex: none; display: flex; align-items: center; gap: 6px;
+    padding: 10px 8px; border-bottom: 1px solid var(--line);
+  }
+  .det-top button {
+    font: inherit; font-size: 20px; line-height: 1; background: none; border: none;
+    cursor: pointer; color: var(--ink); border-radius: 8px;
+    width: 44px; height: 44px; flex: none;
+  }
+  .det-top button:focus-visible { outline: 2px solid var(--ink); }
+  #det-name { flex: 1; text-align: center; font-size: 18px; font-weight: 700; }
+  #det-pos { font-size: 13px; color: var(--muted); padding: 0 10px; font-variant-numeric: tabular-nums; }
+
+  .det-sub {
+    flex: none; display: flex; align-items: center; gap: 14px;
+    padding: 12px 16px; border-bottom: 1px solid var(--line);
+  }
+  #minimap { width: 116px; height: 116px; flex: none; }
+  #minimap path { stroke: #fff; stroke-width: 3; opacity: .3; cursor: pointer; }
+  #minimap path.sel { opacity: 1; stroke: var(--ink); stroke-width: 6; }
+  #det-status { flex: 1; font-size: 15px; }
+  #det-status .hold { font-weight: 600; }
+  #det-status .note { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  #chal-track {
+    flex: 1; min-height: 0; display: flex;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  #chal-track::-webkit-scrollbar { display: none; }
+  .slide {
+    flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always;
+    display: flex; flex-direction: column;
+    padding: 24px 24px 20px; overflow-y: auto;
+  }
+  .slide .which { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .slide h2 { font-size: 22px; font-weight: 700; text-wrap: balance; }
+  .slide .desc { margin-top: 8px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+  .slide .photo-act.center { width: 100%; text-align: center; margin-top: 10px; }
+  .slide .who { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .slide .who .row { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--muted); }
+  .slide .who .row.done { color: var(--ink); }
+  .slide .who .dot { width: 11px; height: 11px; flex: none; }
+  .slide .proofs { display: flex; gap: 10px; margin-top: 16px; }
+  .slide .proof { flex: 1; min-width: 0; margin: 0; }
+  /* Photos sit inside a clipping frame so a blur never softens the frame edge. */
+  .slide .proof .pframe { display: block; overflow: hidden; border-radius: 10px; height: 150px; }
+  .slide .proof img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+  .slide .proof img:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+  /* Opponent photos could reveal how to do a challenge — blurred until game end. */
+  .slide .proof img.foe { filter: blur(12px); transform: scale(1.12); cursor: default; }
+  .trow .tframe img.foe { filter: blur(6px); transform: scale(1.18); }
+  .slide .proof figcaption { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+  /* ---------- full-screen photo viewer ---------- */
+  #lightbox {
+    position: fixed; inset: 0; z-index: 40; background: rgba(12, 13, 15, .94);
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; cursor: pointer;
+  }
+  #lightbox.show { display: flex; }
+  #lightbox img { max-width: 100%; max-height: 80dvh; object-fit: contain; border-radius: 8px; }
+  #lightbox-cap { color: #fff; opacity: .8; font-size: 14px; margin-top: 12px; }
+  #lightbox-close {
+    position: absolute; top: 10px; right: 10px; width: 44px; height: 44px;
+    font: inherit; font-size: 20px; color: #fff; background: none; border: none;
+    cursor: pointer; border-radius: 8px;
+  }
+  #lightbox-close:focus-visible { outline: 2px solid #fff; }
+  .slide .photo-act {
+    font: inherit; font-size: 14px; margin-top: 14px; padding: 6px 0;
+    background: none; border: none; color: var(--muted);
+    text-decoration: underline; cursor: pointer; text-align: left; width: auto;
+  }
+  .slide .photo-act:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .slide .spacer { flex: 1; min-height: 20px; }
+  .slide button {
+    font: inherit; font-size: 17px; font-weight: 600; width: 100%;
+    padding: 14px 16px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--ink); background: var(--ink); color: #fff;
+  }
+  .slide button.fogbtn  { background: var(--fog);  border-color: var(--fog); }
+  .slide button.surfbtn { background: var(--surf); border-color: var(--surf); }
+  .slide button.undo { background: none; color: var(--ink); font-weight: 400; }
+  .slide button.undo.fogbtn  { color: var(--fog); }
+  .slide button.undo.surfbtn { color: var(--surf); }
+  .slide button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  #dots {
+    flex: none; display: flex; justify-content: center; gap: 8px;
+    padding: 12px 0 18px;
+  }
+  #dots .d { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+  #dots .d.on { background: var(--ink); }
+  .det-nav { flex: none; display: flex; gap: 10px; padding: 10px 16px 14px; border-top: 1px solid var(--line); }
+  .det-nav button {
+    flex: 1; min-width: 0; font: inherit; background: var(--open-fill);
+    border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  #det-prev { align-items: flex-start; text-align: left; }
+  #det-next { align-items: flex-end; text-align: right; }
+  .det-nav .dir { font-size: 12px; color: var(--muted); }
+  .det-nav .nm {
+    font-size: 14px; font-weight: 600; color: var(--ink); max-width: 100%;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .det-nav button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="team fog">
+    <span class="dot" style="background:var(--fog)"></span>
+    <span class="label"><b>Red</b><span id="you-fog"></span></span>
+    <span class="count" id="score-fog">0</span>
+  </div>
+  <div class="mid">
+    <div class="clock" id="clock">–:––:––</div>
+  </div>
+  <div class="team surf">
+    <span class="count" id="score-surf">0</span>
+    <span class="label" style="text-align:right"><b>Blue</b><span id="you-surf"></span></span>
+    <span class="dot" style="background:var(--surf)"></span>
+  </div>
+</header>
+
+<div id="map-wrap">
+  <svg id="map" role="list" aria-label="San Francisco neighborhoods"></svg>
+</div>
+
+<div id="rules" aria-label="Rules">
+  <h2>How it works</h2>
+  <!-- rules:start -->
+  <p class="enc">Clipper Conquest is played by two teams that race to conquer as many SF neighborhoods as possible. Whichever team has more neighborhoods when the clock hits zero is the winner.</p>
+<p class="enc">Every one of San Francisco&#x27;s 41 neighborhoods has 3 unique challenges. You can conquer a neighborhood by completing its challenges. But be careful, because the other team can steal the neighborhood by completing more of the neighborhood&#x27;s challenges than you.</p>
+<p class="enc">If you only complete one challenge, you conquer the neighborhood quickly but are vulnerable to a steal. If you complete all three, the neighborhood is locked, but it might take a long time to complete all three challenges.</p>
+  <ol>
+    <li><b>Two teams, Red vs Blue,</b> 2–6 players each.</li>
+    <li><b>Stay together.</b> Split up only when a challenge explicitly says to.</li>
+    <li><b>Any team can attempt any challenge</b> at any time.</li>
+    <li><b>Ties go to whoever got there first.</b> On an equal count, the team whose completion was logged in the app first holds the neighborhood.</li>
+    <li><b>Photo proof with every completion.</b> Honor system. Log the completion as soon as you can; the photo can follow when it uploads.</li>
+    <li><b>One-shots:</b> a miss is a miss. Everything else takes persistence.</li>
+    <li><b>Some challenges may be impossible</b> on the day (something closed). Move on.</li>
+    <li><b>Muni only.</b> No BART, no Caltrain, no cars or bikes. No running unless a challenge says to — speedwalk.</li>
+    <li><b>No law-breaking.</b> Pay fares, cross on the signal, no trespassing.</li>
+    <li><b>No interfering</b> with the other team — no blocking, distracting or sabotaging their challenges.</li>
+    <li><b>Questions about a challenge?</b> Text the group chat.</li>
+    <li><b>When the clock hits zero,</b> a challenge still in progress counts as failed. Tied on neighborhoods? The team that first held that many wins.</li>
+    <li><b>Be kind and stay safe.</b></li>
+  </ol>
+  <p class="enc"><b>Encouraged, not required:</b> take lots of photos and videos, and share the spotlight — a different teammate for each challenge.</p>
+  <!-- rules:end -->
+</div>
+<div id="timeline" aria-label="Game timeline"></div>
+
+<footer>
+  <div id="view-toggle" role="group" aria-label="View">
+    <button id="view-map" aria-pressed="true">Map</button>
+    <button id="view-timeline" aria-pressed="false">Timeline</button>
+    <button id="view-rules" aria-pressed="false">Rules</button>
+  </div>
+  <button id="me" aria-label="Join the game">?</button>
+</footer>
+
+<div id="join" role="dialog" aria-modal="true" aria-labelledby="join-title">
+  <div class="join-card">
+    <h1 id="join-title">Clipper Conquest</h1>
+    <p class="join-sub">Two teams, one afternoon, all of San Francisco.</p>
+    <label class="join-label" for="join-name">Your name</label>
+    <input id="join-name" type="text" autocomplete="off" maxlength="24" placeholder="e.g. Maya">
+    <p class="join-label">Your team</p>
+    <div class="join-teams">
+      <button id="join-fog" class="tbtn tf" aria-pressed="false">Red</button>
+      <button id="join-surf" class="tbtn ts" aria-pressed="false">Blue</button>
+    </div>
+    <button id="join-go" disabled>Join the game</button>
+    <p class="join-note">Change your name or team any time — tap your name under the map.
+    Lose your connection or restart your phone? Just open the site again and you’re back in.</p>
+    <button id="join-reset">Reset demo data</button>
+  </div>
+</div>
+
+<input type="file" id="photo-in" accept="image/*" capture="environment" hidden>
+
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Photo">
+  <img id="lightbox-img" alt="">
+  <div id="lightbox-cap"></div>
+  <button id="lightbox-close" aria-label="Close photo">✕</button>
+</div>
+
+<div id="detail" role="dialog" aria-modal="true" aria-labelledby="det-name">
+  <div id="panel">
+    <div class="det-top">
+      <button id="det-back" aria-label="Close">✕</button>
+      <span id="det-name"></span>
+      <span id="det-pos"></span>
+    </div>
+    <div class="det-sub">
+      <svg id="minimap" aria-hidden="true"></svg>
+      <div id="det-status"></div>
+    </div>
+    <div id="chal-track" aria-label="Challenges, swipe to browse"></div>
+    <div id="dots" aria-hidden="true"></div>
+  </div>
+  <div class="det-nav">
+    <button id="det-prev"><span class="dir">‹ Previous</span><span class="nm"></span></button>
+    <button id="det-next"><span class="dir">Next ›</span><span class="nm"></span></button>
+  </div>
+</div>
+
+<script>
+const CH_PER_HOOD = 3;
+const TEAM_NAME = { fog: 'Red', surf: 'Blue' };   // internal ids predate the rename
+const GAME_MS = (2 * 3600 + 47 * 60 + 12) * 1000;
+
+// state[hood] = [[fogTime, surfTime] x3]; times are epoch ms (null = not completed).
+// Holder = more completions; equal counts are broken by who got there first
+// (earlier latest-completion wins). Seed times are written as clock strings and
+// converted to today's epoch times at load.
+function T(str) {
+  const [hm, ap] = str.split(' ');
+  let [h, m] = hm.split(':').map(Number);
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.getTime();
+}
+function fmt(t) {
+  return new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+// Placeholder challenges until the real list lands — picked deterministically
+// per neighborhood so the same challenge always shows the same text.
+const FAKE_TITLES = [
+  'Take a team photo with the oldest storefront you can find',
+  'Order the weirdest thing on the menu and finish it',
+  'Find a mural and recreate the pose',
+  'Get a stranger to teach you a local fact',
+  'Climb to the highest public point in the neighborhood',
+  'Find a plaque and read it aloud to a teammate',
+  'Buy something under $5 from a corner store',
+  'Find a street named after a person and learn who they were',
+  'Spot a dog in a stroller or other neighborhood celebrity',
+  'Take a photo mimicking a statue or sculpture',
+  'Find the best view and take a team panorama',
+  'Get a barista to draw your team logo in latte art',
+  'Find a community garden and name three plants in it',
+  'Ride one form of public transit at least one stop',
+  'Trade something for a book at a little free library',
+  'High-five someone wearing your team’s color',
+  'Find the neighborhood’s oldest bar or cafe and toast',
+  'Photograph a house painted in your team’s color',
+  'Find a street performer and tip them',
+  'Pose under the neighborhood sign or gateway',
+];
+const FAKE_DESCS = [
+  'Everyone on the team must appear in the photo.',
+  'Any storefront counts as long as the name is visible in your photo. If the owner asks what you are doing, you must explain the game with a straight face.',
+  'Walk the full block before you choose. The photo must include at least two teammates, the item in question, and something that proves which neighborhood you are in — a street sign works, a receipt works, a recognizable landmark works. If a local offers to help, you must accept the help and include them in the photo. No take-backs once you tap complete.',
+  'If the neighborhood makes this impossible, improvise: find the closest equivalent and document your reasoning in the photo itself. Judges (there are no judges) will be lenient.',
+  'One attempt per team. If both teams attempt this at the same location at the same time, the first to press the button wins the tiebreak, so walk fast but do not run.',
+  'The photo must clearly show where you are.',
+  'This one has rules: no phones may appear in the shot, at least one team member must be airborne, and the background must contain something older than the Golden Gate Bridge. Interpret that however you like — the honor system is doing a lot of work here, and the other team will absolutely zoom in on your photo after the game to check.',
+  'Ask first. Tip well. Photograph the result from close enough that nobody could mistake it for a stock image.',
+];
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+function fakeChallenge(name, ci) {
+  const h = hashStr(name);
+  return {
+    title: FAKE_TITLES[(h + ci * 7) % FAKE_TITLES.length],
+    desc: FAKE_DESCS[(h + ci) % FAKE_DESCS.length],
+  };
+}
+
+const SEED = {
+  'Marina':                        [['1:12 PM', null], ['1:31 PM', null], ['1:58 PM', null]],
+  'Inner Richmond':                [['12:40 PM', null], ['1:05 PM', null], [null, null]],
+  'North Beach':                   [['12:22 PM', '12:50 PM'], ['1:44 PM', null], [null, null]],
+  'Haight Ashbury':                [['2:05 PM', null], [null, null], [null, null]],
+  'Mission':                       [[null, '2:14 PM'], ['1:52 PM', '2:31 PM'], [null, null]],
+  'South of Market':               [[null, '1:20 PM'], [null, '1:47 PM'], [null, null]],
+  'Castro/Upper Market':           [[null, '12:58 PM'], [null, '1:15 PM'], [null, '1:37 PM']],
+  'Sunset/Parkside':               [['1:29 PM', null], [null, '2:02 PM'], [null, null]],
+  'Financial District/South Beach':[['12:31 PM', null], [null, '1:09 PM'], [null, null]],
+};
+
+let hoods = [];            // [{name, feature, path, badge}] sorted by name
+let refreshLabels = () => {};   // set by buildMap; re-run on zoom or score changes
+let mapZoomK = 1;               // current zoom (view width / full width)
+let state = {};            // name -> [[fogTime, surfTime] x3]
+let profile = null;   // {name, team} — the "account": stored on this phone, so reopening the site rejoins
+try { profile = JSON.parse(localStorage.getItem('cc2-profile') || 'null'); } catch (e) {}
+let you = (profile && profile.team) || 'fog';
+let current = -1;          // index into hoods for the open detail view
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('cc2-state2');
+    if (s) return JSON.parse(s);
+  } catch (e) {}
+  return null;
+}
+function saveState() {
+  try { localStorage.setItem('cc2-state2', JSON.stringify(state)); } catch (e) {}
+}
+
+/* ---------- photo proof (demo: stored in the browser; real app uploads) ---------- */
+let photos = {};   // photos[hood][challengeIndex][team] = jpeg data URL
+function loadPhotos() {
+  try { const p = localStorage.getItem('cc2-photos'); if (p) photos = JSON.parse(p); } catch (e) {}
+}
+function savePhotos() {
+  try { localStorage.setItem('cc2-photos', JSON.stringify(photos)); }
+  catch (e) { alert('Photo storage is full in this demo — the real app will upload photos to the server instead.'); }
+}
+function getPhoto(name, ci, team) {
+  return (photos[name] && photos[name][ci] && photos[name][ci][team]) || null;
+}
+
+// Filler proof photos for the seeded completions, generated in the browser so
+// the photo UX is visible without a photo service. Real uploads always win.
+const fillerCache = new Map();
+function fillerPhoto(name, ci, team) {
+  const key = `${name}|${ci}|${team}`;
+  if (!fillerCache.has(key)) {
+    const c = document.createElement('canvas');
+    c.width = 480; c.height = 360;
+    const g = c.getContext && c.getContext('2d');
+    if (!g) return null;
+    g.fillStyle = team === 'fog' ? '#C42847' : '#1D6FB8';
+    g.fillRect(0, 0, 480, 360);
+    g.fillStyle = 'rgba(255,255,255,.14)';
+    g.beginPath(); g.moveTo(0, 360); g.lineTo(480, 140); g.lineTo(480, 360); g.closePath(); g.fill();
+    g.beginPath(); g.arc(390, 84, 88, 0, 7); g.fill();
+    g.textAlign = 'center'; g.fillStyle = '#fff';
+    g.font = '700 42px system-ui, sans-serif';
+    g.fillText('Sample photo', 240, 168);
+    g.fillStyle = 'rgba(255,255,255,.85)';
+    const sub = `${name} · Challenge ${ci + 1}`;
+    g.font = '400 24px system-ui, sans-serif';
+    if (g.measureText(sub).width > 440) g.font = '400 19px system-ui, sans-serif';
+    g.fillText(sub, 240, 212);
+    fillerCache.set(key, c.toDataURL('image/jpeg', 0.7));
+  }
+  return fillerCache.get(key);
+}
+function seededCompletion(name, ci, team) {
+  const s = SEED[name];
+  return Boolean(s && s[ci] && s[ci][team === 'fog' ? 0 : 1]);
+}
+function photoFor(name, ci, team) {
+  return getPhoto(name, ci, team) ||
+         (seededCompletion(name, ci, team) ? fillerPhoto(name, ci, team) : null);
+}
+function setPhoto(name, ci, team, url) {
+  photos[name] = photos[name] || {};
+  photos[name][ci] = photos[name][ci] || {};
+  if (url) photos[name][ci][team] = url; else delete photos[name][ci][team];
+  savePhotos();
+}
+
+let photoTarget = null;   // {name, ci} awaiting a file pick
+const photoIn = document.getElementById('photo-in');
+photoIn.onchange = () => {
+  const file = photoIn.files[0];
+  photoIn.value = '';
+  if (!file || !photoTarget) return;
+  const img = new Image();
+  img.onload = () => {
+    // Downscale before storing — the real app does the same before uploading,
+    // so a field photo is a few hundred KB on cellular, not 4MB.
+    const max = 900, k = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * k);
+    c.height = Math.round(img.height * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(img.src);
+    if (photoTarget.complete) {
+      const row = state[photoTarget.name][photoTarget.ci];
+      const yi = you === 'fog' ? 0 : 1;
+      if (!row[yi]) row[yi] = Date.now();
+    }
+    setPhoto(photoTarget.name, photoTarget.ci, you, c.toDataURL('image/jpeg', 0.65));
+    const t = photoTarget;
+    photoTarget = null;
+    afterChange(t.ci);
+  };
+  img.src = URL.createObjectURL(file);
+};
+
+function counts(name) {
+  const rows = state[name];
+  let fog = 0, surf = 0;
+  for (const [f, s] of rows) { if (f) fog++; if (s) surf++; }
+  return [fog, surf];
+}
+function hoodClass(name) {
+  const rows = state[name];
+  let f = 0, s = 0, fLast = 0, sLast = 0;
+  for (const [ft, st] of rows) {
+    if (ft) { f++; fLast = Math.max(fLast, ft); }
+    if (st) { s++; sLast = Math.max(sLast, st); }
+  }
+  if (!f && !s) return 'open';
+  if (f !== s) return f > s ? 'fog' : 'surf';
+  return fLast <= sLast ? 'fog' : 'surf';   // tie: whoever reached this count first
+}
+
+/* ---------- map ---------- */
+// Short display names so labels fit on small polygons; anything not listed
+// uses its full name. A label only shows once it fits at the current zoom.
+const SHORT_NAMES = {
+  'Bayview Hunters Point': 'Bayview',
+  'Castro/Upper Market': 'Castro',
+  'Financial District/South Beach': 'FiDi',
+  'Golden Gate Park': 'GG Park',
+  'Haight Ashbury': 'Haight',
+  'Hayes Valley': 'Hayes',
+  'Lone Mountain/USF': 'USF',
+  'McLaren Park': 'McLaren',
+  'Oceanview/Merced/Ingleside': 'OMI',
+  'Pacific Heights': 'Pac Heights',
+  'Presidio Heights': 'Presidio Hts',
+  'Potrero Hill': 'Potrero',
+  'South of Market': 'SoMa',
+  'Sunset/Parkside': 'Sunset',
+  'Treasure Island': 'Treasure Is',
+  'Visitacion Valley': 'Vis Valley',
+  'West of Twin Peaks': 'W Twin Peaks',
+  'Western Addition': 'W Addition',
+  'Bernal Heights': 'Bernal',
+};
+
+// Hand-tuned label nudges in map units ([dx, dy]), reviewed against a render.
+const LABEL_TWEAKS = {
+  'North Beach': [0, 10],
+  'Golden Gate Park': [70, 0],
+};
+
+function project(features) {
+  let minLon = 999, maxLon = -999, minLat = 999, maxLat = -999;
+  const walk = (c, fn) => Array.isArray(c[0]) ? c.forEach(x => walk(x, fn)) : fn(c);
+  features.forEach(f => walk(f.geometry.coordinates, ([lon, lat]) => {
+    minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon);
+    minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat);
+  }));
+  const kx = Math.cos((minLat + maxLat) / 2 * Math.PI / 180);
+  const S = 1000 / ((maxLon - minLon) * kx);
+  const W = 1000, H = (maxLat - minLat) * S;
+  const pt = ([lon, lat]) => [(lon - minLon) * kx * S, (maxLat - lat) * S];
+  return { pt, W, H };
+}
+
+// Longest horizontal run of land at height y, per ring (so a two-island
+// neighborhood never gets a "chord" spanning the water between them).
+function widestChordAt(rings, y) {
+  let best = null;
+  for (const pts of rings) {
+    const xs = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
+        xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
+      }
+    }
+    xs.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < xs.length; i += 2) {
+      const len = xs[i + 1] - xs[i];
+      if (!best || len > best.len) best = { len, x: (xs[i] + xs[i + 1]) / 2 };
+    }
+  }
+  return best;
+}
+
+function insideOuters(outers, x, y) {
+  let cnt = 0;
+  for (const pts of outers) {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
+        if (x < x1 + (y - y1) * (x2 - x1) / (y2 - y1)) cnt++;
+      }
+    }
+  }
+  return cnt % 2 === 1;
+}
+
+function centroid(ring) {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const cross = ring[i][0] * ring[i+1][1] - ring[i+1][0] * ring[i][1];
+    a += cross; cx += (ring[i][0] + ring[i+1][0]) * cross; cy += (ring[i][1] + ring[i+1][1]) * cross;
+  }
+  return [cx / (3 * a), cy / (3 * a)];
+}
+
+function buildMap(geo) {
+  const svg = document.getElementById('map');
+  const NS = 'http://www.w3.org/2000/svg';
+  const { pt, W, H } = project(geo.features);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H.toFixed(1)}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  const msvg = document.getElementById('minimap');
+  msvg.setAttribute('viewBox', `0 0 ${W} ${H.toFixed(1)}`);
+  const gPaths = document.createElementNS(NS, 'g');
+  const gBadges = document.createElementNS(NS, 'g');
+  svg.append(gPaths, gBadges);   // badges always draw above neighborhood fills
+
+  // Measure label text with the same font it renders in (canvas works even
+  // when the map is hidden behind the list view, unlike getComputedTextLength).
+  const measCanvas = document.createElement('canvas');
+  const meas = measCanvas.getContext && measCanvas.getContext('2d');
+  if (meas) meas.font = '600 26px system-ui, sans-serif';
+  const textWidth = s => meas ? meas.measureText(s).width : s.length * 26 * 0.56;
+
+  geo.features
+    .sort((a, b) => a.properties.name.localeCompare(b.properties.name))
+    .forEach((f, i) => {
+      const name = f.properties.name;
+      const rings = f.geometry.type === 'Polygon' ? [f.geometry.coordinates]
+                                                  : f.geometry.coordinates;
+      let d = '', first = null, minY = 1e9, maxY = -1e9;
+      const outers = [];   // outer ring of each polygon, projected
+      rings.forEach(poly => poly.forEach((ring, ri) => {
+        const pts = ring.map(pt);
+        if (!first) first = pts;
+        if (ri === 0) outers.push(pts);
+        pts.forEach(p => { if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1]; });
+        d += 'M' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L') + 'Z';
+      }));
+
+      // Anchor label + badge on the widest strip of land that also has vertical
+      // room for both rows — centroids drift outside on slanted or crescent
+      // shapes, and the widest row alone can land on a thin arm (the Panhandle).
+      const flat = (maxY - minY) < 60;
+      const bdy = flat ? 8 : 17;
+      // Score each row by width, discounted by distance from the vertical
+      // center (0.47: the name+badge pair hangs slightly below its anchor).
+      // A wide-but-high row only wins over a centered one when it is much
+      // wider — this is what keeps tall rectangles like Sunset centered.
+      const cand = [];
+      for (let t = 0.18; t <= 0.82; t += 0.04) {
+        const y = minY + (maxY - minY) * t;
+        const c = widestChordAt(outers, y);
+        if (c) cand.push({ ...c, y, score: c.len * (1 - 1.1 * Math.abs(t - 0.47)) });
+      }
+      cand.sort((a, b) => b.score - a.score);
+      let anchor =
+        cand.find(c => insideOuters(outers, c.x, c.y - 16) &&
+                       insideOuters(outers, c.x, c.y + bdy + 4)) ||
+        cand[0];
+      if (!anchor) {
+        const [cx, cy] = centroid(first);
+        anchor = { x: cx, y: cy, len: 0 };
+      }
+      // Only 41 neighborhoods: hand-picked nudges (map units) beat cleverness
+      // where the algorithm's choice reads slightly off. Reviewed visually.
+      const tweak = LABEL_TWEAKS[name];
+      if (tweak) anchor = { ...anchor, x: anchor.x + tweak[0], y: anchor.y + tweak[1] };
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('tabindex', '0');
+      path.setAttribute('role', 'listitem');
+      path.setAttribute('aria-label', name);
+      const open = () => showDetail(i);
+      path.addEventListener('click', open);
+      path.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+      gPaths.appendChild(path);
+
+      // Flat strip-shaped neighborhoods can't fit a label row plus a badge
+      // row — there the badge sits on the anchor row itself (bdy above). If
+      // even that exits a tiny shape, walk the offset in until it's inside
+      // (0 = on the anchor row, which is inside by construction).
+      let dy = [bdy, 6, 4, 2, 0].find(v => insideOuters(outers, anchor.x, anchor.y + v));
+      if (dy === undefined) dy = 0;
+      const badge = document.createElementNS(NS, 'text');
+      badge.setAttribute('x', anchor.x.toFixed(1));
+      badge.setAttribute('y', (anchor.y + dy).toFixed(1));
+      badge.setAttribute('class', 'badge');
+      gBadges.appendChild(badge);
+
+      const short = SHORT_NAMES[name] || name;
+      const nameEl = document.createElementNS(NS, 'text');
+      nameEl.setAttribute('x', anchor.x.toFixed(1));
+      nameEl.setAttribute('y', (anchor.y - 5).toFixed(1));
+      nameEl.setAttribute('class', 'hood-name');
+      nameEl.textContent = short;
+      gBadges.appendChild(nameEl);
+
+      const mini = document.createElementNS(NS, 'path');
+      mini.setAttribute('d', d);
+      mini.addEventListener('click', open);
+      msvg.appendChild(mini);
+
+      hoods.push({ name, path, badge, mini, nameEl, short, flat,
+                   ax: anchor.x, ay: anchor.y, ndy: 5, bdy: dy,
+                   avail: anchor.len, textW: textWidth(short) });
+    });
+
+  // Show a neighborhood's label only when the measured name fits on the
+  // widest strip of that neighborhood at the current zoom. On flat strips
+  // with scores, the score badge takes the row and the label yields.
+  // Text renders at a constant screen size while zooming, so the vertical
+  // offsets from the anchor must scale with zoom exactly like the fonts do —
+  // fixed map-unit offsets drift apart on screen as you zoom in.
+  refreshLabels = () => {
+    hoods.forEach(h => {
+      const [f, s] = state[h.name] ? counts(h.name) : [0, 0];
+      const fits = h.textW * mapZoomK < h.avail * 0.88;
+      h.nameEl.classList.toggle('show', fits && !(h.flat && (f || s)));
+      h.nameEl.setAttribute('y', (h.ay - h.ndy * mapZoomK).toFixed(1));
+      h.badge.setAttribute('y', (h.ay + h.bdy * mapZoomK).toFixed(1));
+    });
+  };
+
+  enableMapGestures(svg, W, H, k => { mapZoomK = k; refreshLabels(); });
+}
+
+/* ---------- map pan & pinch zoom ---------- */
+function enableMapGestures(svg, W, H, onZoom) {
+  const MAXZ = 8;
+  let view = { x: 0, y: 0, w: W, h: H };
+  const ptrs = new Map();
+  let gesture = null;   // snapshot taken whenever the set of fingers changes
+  let moved = 0;
+
+  function apply() {
+    view.w = Math.min(W, Math.max(W / MAXZ, view.w));
+    view.h = view.w * H / W;
+    view.x = Math.min(Math.max(view.x, 0), W - view.w);
+    view.y = Math.min(Math.max(view.y, 0), H - view.h);
+    svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
+    const k = view.w / W;   // keep badges and labels the same size on screen at any zoom
+    svg.style.setProperty('--badge-size', (22 * k) + 'px');
+    svg.style.setProperty('--badge-stroke', (4 * k) + 'px');
+    svg.style.setProperty('--name-size', (26 * k) + 'px');
+    svg.style.setProperty('--name-stroke', (3.5 * k) + 'px');
+    if (onZoom) onZoom(k);
+  }
+
+  // Rendered scale/offsets for preserveAspectRatio="meet".
+  function fit(v) {
+    const r = svg.getBoundingClientRect();
+    const k = Math.min(r.width / v.w, r.height / v.h);
+    return { r, k, ox: (r.width - v.w * k) / 2, oy: (r.height - v.h * k) / 2 };
+  }
+  function toMap(v, cx, cy) {
+    const { r, k, ox, oy } = fit(v);
+    return [v.x + (cx - r.left - ox) / k, v.y + (cy - r.top - oy) / k];
+  }
+  function anchor(mx, my, cx, cy) {   // position view so map point (mx,my) sits under client (cx,cy)
+    const { r, k, ox, oy } = fit(view);
+    view.x = mx - (cx - r.left - ox) / k;
+    view.y = my - (cy - r.top - oy) / k;
+  }
+
+  function startGesture() {
+    gesture = { view: { ...view }, ps: [...ptrs.values()].map(p => [...p]) };
+  }
+  svg.addEventListener('pointerdown', e => {
+    ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (ptrs.size === 1) moved = 0;
+    startGesture();
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!ptrs.has(e.pointerId) || !gesture) return;
+    ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    const ps = [...ptrs.values()];
+    if (ps.length === 1) {
+      const [x0, y0] = gesture.ps[0], [x1, y1] = ps[0];
+      moved = Math.max(moved, Math.hypot(x1 - x0, y1 - y0));
+      const { k } = fit(gesture.view);
+      view = { ...gesture.view, x: gesture.view.x - (x1 - x0) / k, y: gesture.view.y - (y1 - y0) / k };
+      apply();
+    } else {
+      const [a0, b0] = gesture.ps, [a1, b1] = ps;
+      moved = 999;
+      const zoom = (Math.hypot(b1[0] - a1[0], b1[1] - a1[1]) || 1) /
+                   (Math.hypot(b0[0] - a0[0], b0[1] - a0[1]) || 1);
+      const m0 = [(a0[0] + b0[0]) / 2, (a0[1] + b0[1]) / 2];
+      const m1 = [(a1[0] + b1[0]) / 2, (a1[1] + b1[1]) / 2];
+      const [mx, my] = toMap(gesture.view, m0[0], m0[1]);
+      view = { ...view, w: gesture.view.w / zoom, h: gesture.view.h / zoom };
+      view.w = Math.min(W, Math.max(W / MAXZ, view.w));
+      view.h = view.w * H / W;
+      anchor(mx, my, m1[0], m1[1]);
+      apply();
+    }
+  });
+  const endPtr = e => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (ptrs.size) startGesture(); else gesture = null;
+  };
+  window.addEventListener('pointerup', endPtr);
+  window.addEventListener('pointercancel', endPtr);
+
+  // A drag or pinch must not count as a tap on a neighborhood.
+  svg.addEventListener('click', e => {
+    if (moved > 8) { e.stopPropagation(); e.preventDefault(); moved = 0; }
+  }, true);
+
+  function zoomAt(cx, cy, factor) {
+    const [mx, my] = toMap(view, cx, cy);
+    view.w = Math.min(W, Math.max(W / MAXZ, view.w / factor));
+    view.h = view.w * H / W;
+    anchor(mx, my, cx, cy);
+    apply();
+  }
+  svg.addEventListener('dblclick', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, 2); });
+  svg.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.002)); }, { passive: false });
+
+  if (onZoom) onZoom(1);   // initial label pass at full-city zoom
+}
+
+function paintMini() {
+  hoods.forEach((h, i) => {
+    if (h.mini) h.mini.setAttribute('class', hoodClass(h.name) + (i === current ? ' sel' : ''));
+  });
+}
+
+function paint() {
+  let fog = 0, surf = 0, open = 0;
+  hoods.forEach(h => {
+    const cls = hoodClass(h.name);
+    h.path.setAttribute('class', cls);
+    const [f, s] = counts(h.name);
+    const active = Boolean(f || s);
+    h.badge.textContent = active ? `${f}–${s}` : '';
+    if (cls === 'fog') fog++; else if (cls === 'surf') surf++; else open++;
+  });
+  paintMini();
+  refreshLabels();
+  document.getElementById('score-fog').textContent = fog;
+  document.getElementById('score-surf').textContent = surf;
+  renderTimeline();
+  document.getElementById('you-fog').textContent  = you === 'fog'  ? ' (you)' : '';
+  document.getElementById('you-surf').textContent = you === 'surf' ? ' (you)' : '';
+}
+
+/* ---------- detail view ---------- */
+function showDetail(i, slideIdx = 0) {
+  const wasOpen = document.getElementById('detail').classList.contains('show');
+  current = (i + hoods.length) % hoods.length;
+  const name = hoods[current].name;
+  const rows = state[name];
+  const [f, s] = counts(name);
+
+  document.getElementById('det-name').textContent = name;
+  document.getElementById('det-pos').textContent = `${current + 1}/${hoods.length}`;
+  document.querySelector('#det-prev .nm').textContent =
+    hoods[(current + hoods.length - 1) % hoods.length].name;
+  document.querySelector('#det-next .nm').textContent =
+    hoods[(current + 1) % hoods.length].name;
+
+  const status = document.getElementById('det-status');
+  const holderTeam = hoodClass(name);   // 'open' | 'fog' | 'surf'
+  let holdHTML;
+  if (holderTeam === 'open') {
+    holdHTML = 'Unclaimed — no challenges completed yet.';
+  } else {
+    const hn = TEAM_NAME[holderTeam];
+    const [w, l] = holderTeam === 'fog' ? [f, s] : [s, f];
+    const [wc, lc] = holderTeam === 'fog' ? ['cf', 'cs'] : ['cs', 'cf'];
+    holdHTML = `${hn} holds it <span class="${wc}">${w}</span>–<span class="${lc}">${l}</span>` +
+               (w === l ? ' — first there' : '') + '.';
+  }
+  const yours = you === 'fog' ? f : s, theirs = you === 'fog' ? s : f;
+  const remaining = CH_PER_HOOD - yours;
+  let note = '';
+  if (holderTeam === 'open') {
+    note = 'First completion takes it.';
+  } else if (holderTeam !== you) {
+    const need = theirs - yours + 1;
+    note = need <= remaining
+      ? `Complete ${need} more to take it.`
+      : 'Swept — this one can’t be retaken.';
+  }
+  status.innerHTML = `<div class="hold">${holdHTML}</div>${note ? '<div class="note"></div>' : ''}`;
+  if (note) status.querySelector('.note').textContent = note;
+
+  const track = document.getElementById('chal-track');
+  const dots = document.getElementById('dots');
+  track.textContent = '';
+  dots.textContent = '';
+  rows.forEach((row, ci) => {
+    const slide = document.createElement('div');
+    slide.className = 'slide';
+
+    const which = document.createElement('div');
+    which.className = 'which';
+    which.textContent = `Challenge ${ci + 1} of ${CH_PER_HOOD}`;
+
+    const fake = fakeChallenge(name, ci);
+    const h2 = document.createElement('h2');
+    h2.textContent = fake.title;
+    const desc = document.createElement('p');
+    desc.className = 'desc';
+    desc.textContent = fake.desc;
+
+    const who = document.createElement('div');
+    who.className = 'who';
+    [['fog', row[0]], ['surf', row[1]]].forEach(([key, time]) => {
+      const r = document.createElement('div');
+      r.className = 'row' + (time ? ' done' : '');
+      r.innerHTML = `<span class="dot" style="background:var(--${key})"></span>`;
+      r.append(`${TEAM_NAME[key]} ${time ? '✓ completed ' + fmt(time) : '— not yet'}`);
+      who.appendChild(r);
+    });
+
+    const proofs = document.createElement('div');
+    proofs.className = 'proofs';
+    [['fog', row[0]], ['surf', row[1]]].forEach(([key, time]) => {
+      if (!time) return;
+      const ph = photoFor(name, ci, key);
+      if (!ph) return;
+      const fig = document.createElement('figure');
+      fig.className = 'proof';
+      const im = document.createElement('img');
+      im.src = ph;
+      const cap = document.createElement('figcaption');
+      if (key === you) {
+        im.alt = `${TEAM_NAME[key]}’s photo — tap to enlarge`;
+        im.setAttribute('role', 'button');
+        im.setAttribute('tabindex', '0');
+        const capText = `${TEAM_NAME[key]} · ${fmt(time)} · ${name}`;
+        im.addEventListener('click', () => openLightbox(ph, capText));
+        im.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(ph, capText); }
+        });
+        cap.textContent = `${TEAM_NAME[key]} · ${fmt(time)}`;
+      } else {
+        // Their photo might give the challenge away — proof exists, details hidden.
+        im.classList.add('foe');
+        im.alt = `${TEAM_NAME[key]}’s photo — hidden until the game ends`;
+        cap.textContent = `${TEAM_NAME[key]} · ${fmt(time)} · hidden until game end`;
+      }
+      const frame = document.createElement('span');
+      frame.className = 'pframe';
+      frame.appendChild(im);
+      fig.append(frame, cap);
+      proofs.appendChild(fig);
+    });
+
+    const spacer = document.createElement('div');
+    spacer.className = 'spacer';
+
+    const btn = document.createElement('button');
+    const yi = you === 'fog' ? 0 : 1;
+    const teamCls = you === 'fog' ? 'fogbtn' : 'surfbtn';
+    if (row[yi]) {
+      btn.textContent = 'Uncomplete';
+      btn.className = 'undo ' + teamCls;
+      btn.onclick = () => {
+        row[yi] = null;
+        setPhoto(name, ci, you, null);   // proof goes with the completion
+        afterChange(ci);
+      };
+    } else {
+      // Photo proof is required: completing opens the camera / photo picker.
+      btn.textContent = 'Complete with photo';
+      btn.className = teamCls;
+      btn.onclick = () => { photoTarget = { name, ci, complete: true }; photoIn.click(); };
+    }
+
+    slide.append(which, h2, desc, who);
+    if (proofs.children.length) slide.appendChild(proofs);
+    if (row[yi]) {
+      const pa = document.createElement('button');
+      pa.className = 'photo-act';
+      pa.textContent = photoFor(name, ci, you) ? 'Replace photo' : 'Add the missing photo';
+      pa.onclick = () => { photoTarget = { name, ci }; photoIn.click(); };
+      slide.appendChild(pa);
+    }
+    slide.append(spacer, btn);
+    if (!row[yi]) {
+      // The bad-cell-signal backup: the completion counts now, the photo comes later.
+      const fb = document.createElement('button');
+      fb.className = 'photo-act center';
+      fb.textContent = 'Bad signal? Complete without a photo';
+      fb.onclick = () => { row[yi] = Date.now(); afterChange(ci); };
+      slide.appendChild(fb);
+    }
+    track.appendChild(slide);
+
+    const d = document.createElement('span');
+    d.className = 'd' + (ci === slideIdx ? ' on' : '');
+    dots.appendChild(d);
+  });
+
+  paintMini();
+  document.getElementById('detail').classList.add('show');
+  // Keep the browser's back button meaningful: opening the detail view pushes
+  // one history entry (so back = close); switching neighborhoods while open
+  // replaces it (so back still goes straight to the map).
+  if (!navFromHistory) {
+    const hash = '#' + encodeURIComponent(name);
+    if (!wasOpen) history.pushState({ cc: 1 }, '', hash);
+    else if (location.hash !== hash) history.replaceState({ cc: 1 }, '', hash);
+  }
+  requestAnimationFrame(() => {
+    track.scrollLeft = slideIdx * track.clientWidth;
+    updateDots();
+  });
+}
+
+function updateDots() {
+  const track = document.getElementById('chal-track');
+  const cur = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+  document.querySelectorAll('#dots .d').forEach((d, i) => d.classList.toggle('on', i === cur));
+}
+document.getElementById('chal-track').addEventListener('scroll', updateDots, { passive: true });
+
+function afterChange(slideIdx) {
+  saveState();
+  paint();
+  showDetail(current, slideIdx);
+}
+
+let navFromHistory = false;
+
+function closeDetail() {
+  document.getElementById('detail').classList.remove('show');
+  current = -1;
+  paintMini();
+}
+
+document.getElementById('det-prev').onclick = () => showDetail(current - 1);
+document.getElementById('det-next').onclick = () => showDetail(current + 1);
+
+document.getElementById('det-back').onclick = () => {
+  if (history.state && history.state.cc) {
+    history.back();   // popstate handler does the closing
+  } else {
+    // Arrived directly on a #neighborhood URL: nothing of ours to pop.
+    closeDetail();
+    history.replaceState(null, '', location.pathname);
+  }
+};
+
+window.addEventListener('popstate', e => {
+  if (e.state && e.state.cc) {
+    const name = decodeURIComponent(location.hash.slice(1));
+    const i = hoods.findIndex(h => h.name === name);
+    if (i >= 0) { navFromHistory = true; showDetail(i); navFromHistory = false; }
+  } else if (current >= 0) {
+    closeDetail();
+  }
+});
+
+/* ---------- full-screen photo viewer ---------- */
+function openLightbox(src, cap) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-cap').textContent = cap;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+}
+document.getElementById('lightbox').addEventListener('click', closeLightbox);
+document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('lightbox').classList.contains('show')) {
+    closeLightbox();
+    return;
+  }
+  if (current < 0) return;
+  const track = document.getElementById('chal-track');
+  if (e.key === 'ArrowLeft') track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
+  if (e.key === 'ArrowRight') track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
+  if (e.key === 'Escape') document.getElementById('det-back').click();
+});
+
+/* ---------- timeline view ---------- */
+// Every completion is an event. Replaying them in time order recovers the
+// ownership story (claimed / took) with the same tie rule the map uses:
+// on equal counts the previous holder keeps it, because they got there first.
+function gameEvents() {
+  const ev = [];
+  hoods.forEach((h, hi) => {
+    state[h.name].forEach((row, ci) => {
+      if (row[0]) ev.push({ t: row[0], team: 'fog', hi, ci });
+      if (row[1]) ev.push({ t: row[1], team: 'surf', hi, ci });
+    });
+  });
+  ev.sort((a, b) => a.t - b.t);
+  const tally = {};
+  for (const e of ev) {
+    const name = hoods[e.hi].name;
+    const t = tally[name] || (tally[name] = { f: 0, s: 0, holder: null });
+    if (e.team === 'fog') t.f++; else t.s++;
+    let holder = t.f > t.s ? 'fog' : t.s > t.f ? 'surf' : t.holder;
+    if (!holder) holder = e.team;
+    if (holder !== t.holder) e.change = t.holder ? 'took' : 'claimed';
+    t.holder = holder;
+    e.f = t.f; e.s = t.s;
+  }
+  return ev.reverse();   // newest first
+}
+
+function renderTimeline() {
+  const tl = document.getElementById('timeline');
+  tl.textContent = '';
+  const ev = gameEvents();
+  if (!ev.length) {
+    const p = document.createElement('p');
+    p.className = 'tl-empty';
+    p.textContent = 'Nothing yet — completed challenges will show up here.';
+    tl.appendChild(p);
+    return;
+  }
+  ev.forEach(e => {
+    const b = document.createElement('button');
+    b.className = 'trow' + (e.change ? ' takeover' : '');
+    const teamHTML = `<b class="${e.team === 'fog' ? 'cf' : 'cs'}">${TEAM_NAME[e.team]}</b>`;
+    let txt;
+    if (e.change === 'claimed') {
+      txt = `${teamHTML} claimed <b class="hood"></b>`;
+    } else if (e.change === 'took') {
+      const [w, l] = e.team === 'fog' ? [e.f, e.s] : [e.s, e.f];
+      txt = `${teamHTML} took <b class="hood"></b> ${w}–${l}`;
+    } else {
+      txt = `${teamHTML} completed Challenge ${e.ci + 1} in <b class="hood"></b>`;
+    }
+    b.innerHTML = `<span class="tm">${fmt(e.t)}</span><span class="tx">${txt}</span>`;
+    b.querySelector('.hood').textContent = hoods[e.hi].name;
+    const ph = photoFor(hoods[e.hi].name, e.ci, e.team);
+    if (ph) {
+      const frame = document.createElement('span');
+      frame.className = 'tframe';
+      const im = document.createElement('img');
+      if (e.team !== you) im.className = 'foe';
+      im.src = ph;
+      im.alt = '';
+      frame.appendChild(im);
+      b.appendChild(frame);
+    }
+    b.onclick = () => showDetail(e.hi, e.ci);
+    tl.appendChild(b);
+  });
+}
+
+function setView(v) {
+  if (!['map', 'rules', 'timeline'].includes(v)) v = 'map';
+  document.body.classList.toggle('rulesview', v === 'rules');
+  document.body.classList.toggle('tlview', v === 'timeline');
+  ['map', 'rules', 'timeline'].forEach(k =>
+    document.getElementById('view-' + k).setAttribute('aria-pressed', String(v === k)));
+  try { localStorage.setItem('cc2-view', v); } catch (e) {}
+}
+document.getElementById('view-map').onclick = () => setView('map');
+document.getElementById('view-rules').onclick = () => setView('rules');
+document.getElementById('view-timeline').onclick = () => setView('timeline');
+
+/* ---------- clock ---------- */
+let endTime = Number(localStorage.getItem('cc2-end')) || 0;
+if (!endTime || endTime < Date.now()) {
+  endTime = Date.now() + GAME_MS;
+  try { localStorage.setItem('cc2-end', endTime); } catch (e) {}
+}
+function tick() {
+  const ms = Math.max(0, endTime - Date.now());
+  const h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60, sec = Math.floor(ms / 1000) % 60;
+  document.getElementById('clock').textContent =
+    `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+setInterval(tick, 1000); tick();
+
+/* ---------- join / profile ---------- */
+let joinTeam = null;
+const joinEl = document.getElementById('join');
+const joinName = document.getElementById('join-name');
+const joinGo = document.getElementById('join-go');
+
+function refreshJoinGo() {
+  joinGo.disabled = !(joinName.value.trim() && joinTeam);
+  joinGo.textContent = profile ? 'Save' : 'Join the game';
+}
+function setJoinTeam(t) {
+  joinTeam = t;
+  document.getElementById('join-fog').setAttribute('aria-pressed', String(t === 'fog'));
+  document.getElementById('join-surf').setAttribute('aria-pressed', String(t === 'surf'));
+  refreshJoinGo();
+}
+function openJoin() {
+  joinName.value = profile ? profile.name : '';
+  setJoinTeam(profile ? profile.team : null);
+  joinEl.classList.add('show');
+}
+document.getElementById('join-fog').onclick = () => setJoinTeam('fog');
+document.getElementById('join-surf').onclick = () => setJoinTeam('surf');
+joinName.addEventListener('input', refreshJoinGo);
+joinName.addEventListener('keydown', e => { if (e.key === 'Enter' && !joinGo.disabled) joinGo.click(); });
+joinGo.onclick = () => {
+  profile = { name: joinName.value.trim(), team: joinTeam };
+  try { localStorage.setItem('cc2-profile', JSON.stringify(profile)); } catch (e) {}
+  you = profile.team;
+  paintMe();
+  joinEl.classList.remove('show');
+  paint();
+  if (current >= 0) showDetail(current);
+};
+document.getElementById('me').onclick = openJoin;
+
+// Footer badge: fixed-size team-colored circle with the player's initial.
+function paintMe() {
+  const me = document.getElementById('me');
+  const initial = (profile.name.trim()[0] || '?').toUpperCase();
+  me.textContent = initial;
+  me.className = profile.team === 'fog' ? 'me-fog' : 'me-surf';
+  me.setAttribute('aria-label', `${profile.name}, Team ${TEAM_NAME[profile.team]} — change name or team`);
+  me.title = `${profile.name} · Team ${TEAM_NAME[profile.team]}`;
+}
+document.getElementById('join-reset').onclick = () => {
+  ['cc2-state2', 'cc2-photos', 'cc2-end', 'cc2-profile', 'cc2-view'].forEach(k => localStorage.removeItem(k));
+  location.reload();
+};
+
+/* ---------- boot ---------- */
+fetch('sf_neighborhoods.geojson')
+  .then(r => r.json())
+  .then(geo => {
+    buildMap(geo);
+    loadPhotos();
+    setView(localStorage.getItem('cc2-view') || 'map');
+    state = loadState() || {};
+    hoods.forEach(h => {
+      if (!state[h.name]) {
+        state[h.name] = SEED[h.name]
+          ? SEED[h.name].map(r => r.map(t => t ? T(t) : null))
+          : Array.from({ length: CH_PER_HOOD }, () => [null, null]);
+      }
+    });
+    saveState();
+    paint();
+    if (profile) paintMe();
+    else openJoin();
+    // A shared or refreshed #neighborhood URL opens that neighborhood directly.
+    const target = decodeURIComponent(location.hash.slice(1));
+    const ti = hoods.findIndex(h => h.name === target);
+    if (ti >= 0) { navFromHistory = true; showDetail(ti); navFromHistory = false; }
+  });
+</script>
+</body>
+</html>

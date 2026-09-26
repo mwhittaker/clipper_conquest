@@ -1,0 +1,85 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"><style>
+* { box-sizing:border-box; margin:0; }
+html, body { width:1920px; height:1080px; overflow:hidden; background:#fff; color:#1C1E21;
+  font-family:'Inter', system-ui, sans-serif; }
+.stage { position:relative; width:1920px; height:1080px; }
+.mapbox { position:absolute; background:#BFDDF3; border-radius:22px; overflow:hidden; }
+.mapbox svg { width:100%; height:100%; display:block; }
+.h { fill:#F1F2EE; stroke:#fff; stroke-width:1.6; vector-effect:non-scaling-stroke; }
+.h.r { fill:#C42847; } .h.b { fill:#1D6FB8; }
+.h.sel { fill:#FFD966; stroke:#1C1E21; stroke-width:4; }
+.h.focus { stroke:#1C1E21; stroke-width:5; }
+.h.dim { opacity:.55; }
+.h.tie { fill:url(#tie); stroke:#1C1E21; stroke-width:5; }
+.badge { font-weight:700; fill:#fff; paint-order:stroke; stroke:rgba(0,0,0,.45); stroke-linejoin:round;
+  text-anchor:middle; dominant-baseline:central; }
+.nm { font-weight:600; fill:#6A7076; paint-order:stroke; stroke:#F1F2EE; stroke-linejoin:round;
+  text-anchor:middle; dominant-baseline:central; }
+.bar { position:absolute; left:0; right:0; top:0; height:112px; display:flex; align-items:center;
+  justify-content:space-between; padding:0 64px; border-bottom:1px solid #D9DDE1; }
+.bar .team { font-size:44px; font-weight:800; display:flex; align-items:baseline; gap:14px; }
+.bar .team small { font-size:22px; font-weight:600; color:#6A7076; letter-spacing:.04em; text-transform:uppercase; }
+.bar .r { color:#C42847; } .bar .b { color:#1D6FB8; }
+.bar .clock { font-size:52px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+.eyebrow { font-size:22px; color:#6A7076; letter-spacing:.08em; text-transform:uppercase; font-weight:600; }
+.side { position:absolute; }
+.side h2 { font-size:72px; font-weight:800; letter-spacing:-.02em; line-height:1.05; margin:6px 0 24px; }
+.card { background:#F6F7F8; border:1px solid #D9DDE1; border-radius:18px; padding:22px 26px; margin-bottom:16px; }
+.card .which { font-size:18px; color:#6A7076; text-transform:uppercase; letter-spacing:.06em; display:flex; gap:12px; align-items:center; }
+.tag { text-transform:none; letter-spacing:0; font-size:17px; border:1px solid #D9DDE1; background:#fff; border-radius:999px; padding:1px 12px; }
+.card .t { font-size:32px; font-weight:700; margin-top:6px; line-height:1.2; }
+.card.done { background:#fff; }
+.check { width:34px; height:34px; border-radius:50%; display:inline-grid; place-items:center; color:#fff; font-size:20px; font-weight:800; }
+.check.r { background:#C42847; } .check.b { background:#1D6FB8; }
+.feed .row { display:flex; gap:18px; align-items:center; padding:16px 0; border-bottom:1px solid #EEF0F2; font-size:30px; }
+.feed .time { width:110px; color:#6A7076; font-variant-numeric:tabular-nums; font-weight:600; }
+.feed .who.r { color:#C42847; font-weight:700; } .feed .who.b { color:#1D6FB8; font-weight:700; }
+.feed .flip { background:#FFF6D6; border-radius:12px; padding:16px 14px; border-bottom:0; margin-top:6px; }
+.score { font-size:150px; font-weight:800; letter-spacing:-.03em; line-height:1; }
+.score .r { color:#C42847; } .score .b { color:#1D6FB8; } .score .x { color:#D9DDE1; }
+.tl { position:relative; height:150px; margin:30px 0 10px; }
+.tl .track { position:absolute; left:0; right:0; top:74px; height:6px; background:#D9DDE1; border-radius:3px; }
+.tl .dot { position:absolute; top:77px; width:48px; height:48px; border-radius:50%; transform:translate(-50%,-50%);
+  display:grid; place-items:center; color:#fff; font-weight:800; font-size:24px; border:5px solid #fff; }
+.tl .dot.r { background:#C42847; } .tl .dot.b { background:#1D6FB8; }
+.tl .tt { position:absolute; top:10px; transform:translateX(-50%); font-size:24px; color:#6A7076; font-weight:600; font-variant-numeric:tabular-nums; }
+.tl .flag { position:absolute; top:112px; transform:translateX(-50%); font-size:24px; font-weight:700; background:#1C1E21; color:#fff; border-radius:10px; padding:6px 14px; white-space:nowrap; }
+.verdict { font-size:44px; font-weight:700; line-height:1.25; }
+.verdict b { color:#C42847; }
+.legend .row { display:flex; align-items:center; gap:20px; font-size:32px; margin:18px 0; }
+.chip { min-width:64px; height:64px; border-radius:32px; display:inline-grid; place-items:center; font-size:30px; font-weight:800; padding:0 16px; }
+.big { font-size:120px; font-weight:800; letter-spacing:-.03em; line-height:1; }
+</style></head><body><div class="stage"><div class="phone" style="position:absolute; left:250px; top:40px; width:520px; height:1000px; border-radius:64px; background:#1C1E21; padding:18px;
+  box-shadow:0 30px 60px rgba(28,30,33,.25)">
+ <div style="width:100%; height:100%; border-radius:48px; background:#fff; overflow:hidden; font-family:Inter,system-ui,sans-serif">
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:46px 28px 14px; border-bottom:1px solid #D9DDE1">
+    <b style="color:#C42847; font-size:30px">13</b><b style="font-size:30px; font-variant-numeric:tabular-nums">4:27:12</b><b style="color:#1D6FB8; font-size:30px">11</b></div>
+  <div style="padding:20px 26px">
+   <div style="font-size:15px; color:#6A7076; letter-spacing:.06em; text-transform:uppercase">North Beach · Challenge 3 of 3</div>
+   <div style="font-size:32px; font-weight:800; margin:6px 0 10px">Get to Coit Tower</div>
+   <div style="font-size:17px; color:#3A4148; line-height:1.45; margin-bottom:16px">Get to Coit Tower. That's it — the hill is the challenge.</div>
+   <svg viewBox="0 0 600 420" style="width:100%; display:block; border-radius:14px">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8EC5EC"/><stop offset="1" stop-color="#D8ECF8"/></linearGradient></defs>
+<rect width="600" height="420" fill="url(#sky)"/>
+<circle cx="110" cy="90" r="34" fill="#FFF6D6"/>
+<path d="M0 330 C120 250 220 215 300 212 C390 210 480 250 600 320 V420 H0 Z" fill="#5E9E5A"/>
+<path d="M0 360 C150 320 250 300 330 300 C430 300 520 330 600 360 V420 H0 Z" fill="#437D45"/>
+<rect x="276" y="92" width="48" height="126" fill="#F4F1EA"/>
+<g stroke="#D9D2C3" stroke-width="3">
+<line x1="284" y1="100" x2="284" y2="214"/><line x1="292" y1="100" x2="292" y2="214"/><line x1="300" y1="100" x2="300" y2="214"/>
+<line x1="308" y1="100" x2="308" y2="214"/><line x1="316" y1="100" x2="316" y2="214"/></g>
+<rect x="268" y="84" width="64" height="12" fill="#EDE8DD"/>
+<rect x="280" y="64" width="40" height="22" fill="#F4F1EA"/>
+<g fill="#6F7A86"><rect x="284" y="68" width="6" height="12"/><rect x="297" y="68" width="6" height="12"/><rect x="310" y="68" width="6" height="12"/></g>
+<rect x="262" y="214" width="76" height="10" fill="#EDE8DD"/>
+<circle cx="200" cy="232" r="26" fill="#3F7A3F"/><circle cx="228" cy="226" r="20" fill="#4C8A4A"/>
+<circle cx="382" cy="236" r="24" fill="#3F7A3F"/><circle cx="408" cy="244" r="18" fill="#4C8A4A"/>
+</svg>
+   <div style="margin-top:18px; background:#C42847; color:#fff; border-radius:16px; padding:18px; text-align:center; font-size:26px; font-weight:800">✓ Completed · 11:58</div><div style="margin-top:14px; font-size:16px; color:#6A7076">Uploading photo… 72%</div><div style="height:10px; border-radius:5px; background:#E8EAEC; margin-top:6px"><div style="width:72%; height:100%; border-radius:5px; background:#C42847"></div></div>
+  </div></div></div>
+<div class="side legend" style="left:960px; top:250px; width:880px">
+  <div class="eyebrow">Proof</div>
+  <h2 style="font-size:84px">Every completion<br>needs a photo.</h2>
+  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">1</span> Finish the challenge, snap the photo</div>
+  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">2</span> Log it in the app — that time counts</div>
+  </div></div></body></html>

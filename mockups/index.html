@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipper Conquest — design pitches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Archivo+Black&display=swap">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  :root {
+    --bg: #14161B; --panel: #1D2027; --ink: #F0F2F5; --muted: #9AA3AF;
+    --line: #2C313A;
+  }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Archivo", system-ui, sans-serif;
+    min-height: 100dvh; padding: 28px 20px 48px;
+  }
+  main { max-width: 480px; margin: 0 auto; }
+  h1 {
+    font-family: "Archivo Black", "Archivo", sans-serif;
+    font-size: 28px; line-height: 1.1; text-transform: uppercase;
+    letter-spacing: 0.01em; text-wrap: balance;
+  }
+  .sub { color: var(--muted); margin: 10px 0 26px; font-size: 15px; line-height: 1.5; }
+  .card {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 14px;
+  }
+  .card:hover, .card:focus-visible { border-color: #5B6472; }
+  .card:focus-visible { outline: 2px solid #F0F2F5; outline-offset: 2px; }
+  .row { display: flex; align-items: baseline; gap: 10px; }
+  .num { color: var(--muted); font-weight: 700; font-size: 14px; }
+  .name { font-weight: 800; font-size: 19px; letter-spacing: 0.01em; }
+  .desc { color: var(--muted); font-size: 14px; line-height: 1.5; margin-top: 6px; }
+  .chips { display: flex; gap: 6px; margin-top: 12px; }
+  .chip { width: 22px; height: 10px; border-radius: 3px; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 26px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Clipper Conquest<br>five design pitches</h1>
+  <p class="sub">Each one renders the same game moment — Team Fog 4, Team Surf 3,
+  the Mission one flip away — so you're comparing design, not content. Open each
+  on your phone; that's the screen it's designed for.</p>
+
+  <a class="card" href="guide.html">
+    <div class="row"><span class="num">guide</span><span class="name">Pre-game guide</span></div>
+    <p class="desc">Desktop study guide: rules at a glance, the 41-neighborhood map with a Muni rail + rapid overlay, all 123 challenges to read through, and a printable one-page challenge sheet.</p>
+    <div class="chips"><span class="chip" style="background:#C42847"></span><span class="chip" style="background:#1D6FB8"></span><span class="chip" style="background:#E8EAEC"></span></div>
+  </a>
+
+  <a class="card" href="v2.html" style="border-color:#5B6472">
+    <div class="row"><span class="num">v2</span><span class="name">Layout prototype</span></div>
+    <p class="desc">The current direction: real SF neighborhood boundaries, score + clock on top, map filling the screen, tap for a full-screen challenge list, swipe between neighborhoods. Unstyled on purpose.</p>
+  </a>
+
+  <a class="card" href="d1.html">
+    <div class="row"><span class="num">1</span><span class="name">Race Control</span></div>
+    <p class="desc">Live-broadcast sports graphics: dark control room, chunky chyron scoreboard, breaking-news ticker. The Jet Lag episode look.</p>
+    <div class="chips"><span class="chip" style="background:#F5A623"></span><span class="chip" style="background:#4FC3F7"></span><span class="chip" style="background:#131A2A;border:1px solid #2C313A"></span></div>
+  </a>
+
+  <a class="card" href="d2.html">
+    <div class="row"><span class="num">2</span><span class="name">Expedition Ledger</span></div>
+    <p class="desc">Vintage campaign cartography: aged paper, engraved type, hatched territories, a rubber "HELD BY SURF" stamp.</p>
+    <div class="chips"><span class="chip" style="background:#B3402E"></span><span class="chip" style="background:#2C5F8A"></span><span class="chip" style="background:#F0E9D8"></span></div>
+  </a>
+
+  <a class="card" href="d3.html">
+    <div class="row"><span class="num">3</span><span class="name">Wayfinding</span></div>
+    <p class="desc">Transit-system signage: black station-sign bars, route badges, an amber next-train countdown. The game as public infrastructure.</p>
+    <div class="chips"><span class="chip" style="background:#C42847"></span><span class="chip" style="background:#1D6FB8"></span><span class="chip" style="background:#F7F5F0"></span></div>
+  </a>
+
+  <a class="card" href="d4.html">
+    <div class="row"><span class="num">4</span><span class="name">Skirmish</span></div>
+    <p class="desc">Retro handheld strategy game: pixel dither territories, HP-bar scores, a quest-log sheet, faint scanlines.</p>
+    <div class="chips"><span class="chip" style="background:#FF5CA8"></span><span class="chip" style="background:#43E97B"></span><span class="chip" style="background:#10122B;border:1px solid #2C313A"></span></div>
+  </a>
+
+  <a class="card" href="d5.html">
+    <div class="row"><span class="num">5</span><span class="name">Karl</span></div>
+    <p class="desc">Soft SF-fog modern: frosted glass, gentle depth, coral vs teal. The one that could ship in the App Store tomorrow.</p>
+    <div class="chips"><span class="chip" style="background:#D96248"></span><span class="chip" style="background:#2F7E85"></span><span class="chip" style="background:#ECF0F3"></span></div>
+  </a>
+
+  <footer>Both team-color pairs in every pitch pass colorblind-separation and
+  contrast checks. The map is a stylized SF, not exact geography.</footer>
+</main>
+</body>
+</html>

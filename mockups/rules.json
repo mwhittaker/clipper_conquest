@@ -1,0 +1,65 @@
+{
+  "intro": [
+    "Clipper Conquest is played by two teams that race to conquer as many SF neighborhoods as possible. Whichever team has more neighborhoods when the clock hits zero is the winner.",
+    "Every one of San Francisco's 41 neighborhoods has 3 unique challenges. You can conquer a neighborhood by completing its challenges. But be careful, because the other team can steal the neighborhood by completing more of the neighborhood's challenges than you.",
+    "If you only complete one challenge, you conquer the neighborhood quickly but are vulnerable to a steal. If you complete all three, the neighborhood is locked, but it might take a long time to complete all three challenges."
+  ],
+  "rules": [
+    [
+      "Two teams, Red vs Blue,",
+      "2–6 players each."
+    ],
+    [
+      "Stay together.",
+      "Split up only when a challenge explicitly says to."
+    ],
+    [
+      "Any team can attempt any challenge",
+      "at any time."
+    ],
+    [
+      "Ties go to whoever got there first.",
+      "On an equal count, the team whose completion was logged in the app first holds the neighborhood."
+    ],
+    [
+      "Photo proof with every completion.",
+      "Honor system. Log the completion as soon as you can; the photo can follow when it uploads."
+    ],
+    [
+      "One-shots:",
+      "a miss is a miss. Everything else takes persistence."
+    ],
+    [
+      "Some challenges may be impossible",
+      "on the day (something closed). Move on."
+    ],
+    [
+      "Muni only.",
+      "No BART, no Caltrain, no cars or bikes. No running unless a challenge says to — speedwalk."
+    ],
+    [
+      "No law-breaking.",
+      "Pay fares, cross on the signal, no trespassing."
+    ],
+    [
+      "No interfering",
+      "with the other team — no blocking, distracting or sabotaging their challenges."
+    ],
+    [
+      "Questions about a challenge?",
+      "Text the group chat."
+    ],
+    [
+      "When the clock hits zero,",
+      "a challenge still in progress counts as failed. Tied on neighborhoods? The team that first held that many wins."
+    ],
+    [
+      "Be kind and stay safe.",
+      ""
+    ]
+  ],
+  "encouraged": [
+    "Encouraged, not required:",
+    "take lots of photos and videos, and share the spotlight — a different teammate for each challenge."
+  ]
+}

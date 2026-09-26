@@ -1,0 +1,3 @@
+__pycache__/
+# ~400 MB of rendered video frames; the finished video is video/clipper-conquest-rules.mp4
+video/render/out/

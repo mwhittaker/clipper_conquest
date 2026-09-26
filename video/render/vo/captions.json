@@ -1,0 +1,247 @@
+{
+ "1b-title": [
+  [
+   0.0,
+   0.735,
+   "Two teams."
+  ],
+  [
+   0.895,
+   2.126,
+   "Forty-one neighborhoods."
+  ],
+  [
+   2.286,
+   3.018,
+   "One clock."
+  ],
+  [
+   3.178,
+   4.565,
+   "This is Clipper Conquest."
+  ]
+ ],
+ "2a-grey": [
+  [
+   0.0,
+   8.086,
+   "Clipper Conquest is played by two teams, the red team and the blue team, that race to conquer as many San Francisco neighborhoods as possible."
+  ],
+  [
+   8.246,
+   12.024,
+   "Whichever team has more neighborhoods when the clock hits zero is the winner."
+  ]
+ ],
+ "2b-challenges": [
+  [
+   0.0,
+   3.676,
+   "Every one of the city's 41 neighborhoods has three unique challenges."
+  ],
+  [
+   3.836,
+   8.957,
+   "For example, one challenge might ask you to get three antique arcade machines running at the same time."
+  ],
+  [
+   9.117,
+   14.171,
+   "Another might ask two teammates to count the sea lions at Pier 39 and agree on the number."
+  ],
+  [
+   14.331,
+   17.652,
+   "Whichever team has completed more of a neighborhood's challenges holds it."
+  ]
+ ],
+ "3a-muni": [
+  [
+   0.0,
+   4.779,
+   "You get around on Muni, and only Muni: buses, Metro, streetcars and cable cars."
+  ],
+  [
+   4.939,
+   7.865,
+   "No BART, no Caltrain, no cars and no bikes."
+  ],
+  [
+   8.025,
+   9.95,
+   "And no running unless a challenge says to."
+  ],
+  [
+   10.11,
+   11.333,
+   "You can only speedwalk."
+  ]
+ ],
+ "4a-phone": [
+  [
+   0.0,
+   1.836,
+   "When you finish a challenge, take a photo."
+  ],
+  [
+   1.996,
+   3.434,
+   "Every completion needs one."
+  ]
+ ],
+ "4b-upload": [
+  [
+   0.0,
+   1.944,
+   "Then upload it in the app and tap Complete."
+  ],
+  [
+   2.104,
+   4.285,
+   "The moment you log it is the moment it counts."
+  ]
+ ],
+ "5a-empty": [
+  [
+   0.0,
+   1.749,
+   "Here's how that plays out in North Beach."
+  ]
+ ],
+ "5b-blue": [
+  [
+   0.0,
+   1.385,
+   "The blue team completes one."
+  ],
+  [
+   1.545,
+   3.118,
+   "North Beach is the blue team's."
+  ]
+ ],
+ "5c-tied1": [
+  [
+   0.0,
+   0.813,
+   "But be careful."
+  ],
+  [
+   0.973,
+   4.991,
+   "The other team can steal a neighborhood by completing more of its challenges than you."
+  ],
+  [
+   5.151,
+   6.603,
+   "The red team completes one."
+  ],
+  [
+   6.763,
+   10.683,
+   "Now it's one each, but the blue team got there first, so North Beach stays blue."
+  ]
+ ],
+ "5d-flip": [
+  [
+   0.0,
+   0.778,
+   "And then another."
+  ],
+  [
+   0.938,
+   1.803,
+   "Two beats one."
+  ],
+  [
+   1.963,
+   3.596,
+   "The red team steals North Beach."
+  ]
+ ],
+ "5e-tie2": [
+  [
+   0.0,
+   1.663,
+   "The blue team answers with a second."
+  ],
+  [
+   1.823,
+   2.759,
+   "Now it's two each."
+  ],
+  [
+   2.919,
+   3.873,
+   "So who holds it?"
+  ]
+ ],
+ "6a-tiebreak": [
+  [
+   0.0,
+   2.302,
+   "Ties go to whichever team reached that count first."
+  ],
+  [
+   2.462,
+   5.15,
+   "The red team logged its second at 11:58."
+  ],
+  [
+   5.31,
+   7.727,
+   "The blue team logged its second at 12:30."
+  ],
+  [
+   7.887,
+   9.575,
+   "So the red team keeps North Beach."
+  ]
+ ],
+ "6b-sweep": [
+  [
+   0.0,
+   2.269,
+   "Complete all three and the neighborhood is locked."
+  ],
+  [
+   2.429,
+   3.487,
+   "No one can steal it."
+  ]
+ ],
+ "7a-costs": [
+  [
+   0.0,
+   0.967,
+   "So there's a choice."
+  ],
+  [
+   1.127,
+   4.22,
+   "One challenge grabs a neighborhood fast, but it can be stolen."
+  ],
+  [
+   4.38,
+   6.17,
+   "All three lock it, but that takes time."
+  ],
+  [
+   6.33,
+   10.847,
+   "Here, the red team zips around grabbing neighborhoods, while the blue team locks down a few."
+  ]
+ ],
+ "8a-end": [
+  [
+   0.0,
+   3.325,
+   "Whichever team has more neighborhoods when the clock hits zero wins."
+  ],
+  [
+   3.485,
+   5.8,
+   "Every rule and every challenge is in the guide."
+  ]
+ ]
+}

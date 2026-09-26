@@ -1,0 +1,62 @@
+[
+ {
+  "id": "1b-title",
+  "text": "Two teams. Forty-one neighborhoods. One clock. This is Clipper Conquest."
+ },
+ {
+  "id": "2a-grey",
+  "text": "Clipper Conquest is played by two teams, the red team and the blue team, that race to conquer as many San Francisco neighborhoods as possible. Whichever team has more neighborhoods when the clock hits zero is the winner."
+ },
+ {
+  "id": "2b-challenges",
+  "text": "Every one of the city's 41 neighborhoods has three unique challenges. For example, one challenge might ask you to get three antique arcade machines running at the same time. Another might ask two teammates to count the sea lions at Pier 39 and agree on the number. Whichever team has completed more of a neighborhood's challenges holds it."
+ },
+ {
+  "id": "3a-muni",
+  "text": "You get around on Muni, and only Muni: buses, Metro, streetcars and cable cars. No BART, no Caltrain, no cars and no bikes. And no running unless a challenge says to. You can only speedwalk."
+ },
+ {
+  "id": "4a-phone",
+  "text": "When you finish a challenge, take a photo. Every completion needs one."
+ },
+ {
+  "id": "4b-upload",
+  "text": "Then upload it in the app and tap Complete. The moment you log it is the moment it counts."
+ },
+ {
+  "id": "5a-empty",
+  "text": "Here's how that plays out in North Beach."
+ },
+ {
+  "id": "5b-blue",
+  "text": "The blue team completes one. North Beach is the blue team's."
+ },
+ {
+  "id": "5c-tied1",
+  "text": "But be careful. The other team can steal a neighborhood by completing more of its challenges than you. The red team completes one. Now it's one each, but the blue team got there first, so North Beach stays blue."
+ },
+ {
+  "id": "5d-flip",
+  "text": "And then another. Two beats one. The red team steals North Beach."
+ },
+ {
+  "id": "5e-tie2",
+  "text": "The blue team answers with a second. Now it's two each. So who holds it?"
+ },
+ {
+  "id": "6a-tiebreak",
+  "text": "Ties go to whichever team reached that count first. The red team logged its second at 11:58. The blue team logged its second at 12:30. So the red team keeps North Beach."
+ },
+ {
+  "id": "6b-sweep",
+  "text": "Complete all three and the neighborhood is locked. No one can steal it."
+ },
+ {
+  "id": "7a-costs",
+  "text": "So there's a choice. One challenge grabs a neighborhood fast, but it can be stolen. All three lock it, but that takes time. Here, the red team zips around grabbing neighborhoods, while the blue team locks down a few."
+ },
+ {
+  "id": "8a-end",
+  "text": "Whichever team has more neighborhoods when the clock hits zero wins. Every rule and every challenge is in the guide."
+ }
+]

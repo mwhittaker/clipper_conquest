@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipper Conquest — Expedition Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F0E9D8;
+    --paper-aged: #ECE4CF;
+    --ink: #2B2418;
+    --rule: #C9BD9F;
+    --fog: #B3402E;
+    --surf: #2C5F8A;
+    --park: #C9C5A5;
+    --caslon: "Libre Caslon Text", Georgia, "Times New Roman", serif;
+    --franklin: "Libre Franklin", Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--ink);
+    color: var(--ink);
+    font-family: var(--franklin);
+    display: flex;
+    justify-content: center;
+  }
+
+  .app {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background:
+      radial-gradient(130% 80% at 50% -10%, rgba(201,189,159,.28), rgba(201,189,159,0) 55%),
+      radial-gradient(130% 80% at 50% 115%, rgba(201,189,159,.22), rgba(201,189,159,0) 55%),
+      var(--paper);
+    border-left: 1.5px solid var(--ink);
+    border-right: 1.5px solid var(--ink);
+  }
+
+  /* Double-rule plate frame around the whole screen */
+  .frame {
+    position: absolute;
+    inset: 3px;
+    border: 1px solid var(--ink);
+    pointer-events: none;
+    z-index: 40;
+  }
+  .frame::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border: 1px solid var(--rule);
+  }
+
+  /* ---------------- Masthead ---------------- */
+  .masthead {
+    flex: none;
+    padding: 16px 20px 12px;
+    border-bottom: 3px double var(--ink);
+  }
+  .eyebrow-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow-line .fleuron { flex: 1; height: 1px; background: var(--rule); }
+  .eyebrow {
+    font: 600 9px/1 var(--franklin);
+    letter-spacing: .24em;
+    text-transform: uppercase;
+    color: rgba(43,36,24,.78);
+    white-space: nowrap;
+  }
+  .scoreline {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .chip {
+    display: block;
+    width: 16px;
+    height: 16px;
+  }
+  .chip rect { stroke: var(--ink); stroke-width: 1; }
+  .team-name {
+    font: 700 10px/1 var(--franklin);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+  .team--fog .team-name { color: var(--fog); }
+  .team--surf .team-name { color: var(--surf); }
+  .tally { text-align: center; padding: 0 14px; }
+  .tally-nums {
+    font-family: var(--caslon);
+    font-weight: 700;
+    font-size: 38px;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .tally-nums .dash {
+    font-size: 22px;
+    color: rgba(43,36,24,.45);
+    padding: 0 8px;
+    vertical-align: 5px;
+  }
+  .tally-roman {
+    font: italic 400 10px/1 var(--caslon);
+    letter-spacing: .35em;
+    color: rgba(43,36,24,.5);
+    margin-top: 4px;
+  }
+  .tally-cap {
+    font: 600 8px/1 var(--franklin);
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-top: 5px;
+  }
+  .caption {
+    margin: 10px 0 0;
+    text-align: center;
+    font: italic 400 12.5px/1.4 var(--caslon);
+    color: rgba(43,36,24,.88);
+  }
+  .caption .clock {
+    font: 600 12px/1 var(--franklin);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .04em;
+    color: var(--ink);
+    font-style: normal;
+  }
+
+  /* ---------------- Map plate ---------------- */
+  .plate {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 18px 8px;
+  }
+  .plate-map {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    border: 1px solid var(--rule);
+    padding: 6px;
+    display: flex;
+  }
+  .plate-tag {
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 3px 8px;
+    font: 600 8px/1 var(--franklin);
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(43,36,24,.7);
+  }
+  svg.cc-map {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Map: sea, coast, compass */
+  .sea { fill: url(#seaLines); }
+  .coast {
+    fill: var(--paper);
+    stroke: var(--ink);
+    stroke-width: .7;
+    stroke-linejoin: round;
+  }
+  .neatline { fill: none; stroke: var(--ink); stroke-width: .5; }
+  .compass-bed { fill: var(--paper); }
+  .compass-ring { fill: none; stroke: var(--ink); stroke-width: .45; }
+  .compass-inner { fill: none; stroke: rgba(43,36,24,.45); stroke-width: .3; stroke-dasharray: 1 1.2; }
+  .compass-ns { fill: var(--ink); }
+  .compass-ew { fill: rgba(43,36,24,.42); }
+  .compass-pin { fill: var(--paper); stroke: var(--ink); stroke-width: .35; }
+  .compass-n {
+    font: 700 5px var(--caslon);
+    fill: var(--ink);
+    text-anchor: middle;
+  }
+
+  /* Map: neighborhoods */
+  .hood { stroke: var(--ink); stroke-width: .55; stroke-linejoin: round; }
+  .hood--open { fill: var(--paper); }
+  .hood--fog  { fill: url(#hatchFog); }
+  .hood--surf { fill: url(#hatchSurf); }
+  .hood--tied { fill: url(#hatchTied); }
+  .hood--selected { stroke-width: 2; }
+  .park { fill: var(--park); stroke: rgba(43,36,24,.5); stroke-width: .4; stroke-linejoin: round; }
+
+  .hood-badge {
+    font: 700 6.4px var(--caslon);
+    letter-spacing: .4px;
+    fill: var(--ink);
+    paint-order: stroke fill;
+    stroke: var(--paper);
+    stroke-width: 1.8px;
+    stroke-linejoin: round;
+  }
+  .hood-label {
+    font: 700 5.6px var(--caslon);
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    fill: var(--ink);
+    paint-order: stroke fill;
+    stroke: var(--paper);
+    stroke-width: 1.5px;
+    stroke-linejoin: round;
+  }
+  .hood-label.park-label {
+    font: italic 400 5.2px var(--caslon);
+    letter-spacing: .4px;
+    text-transform: none;
+    fill: rgba(43,36,24,.6);
+    stroke: none;
+  }
+
+  .legend {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 14px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .legend li {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font: 500 9px/1 var(--franklin);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(43,36,24,.85);
+  }
+  .legend svg { width: 11px; height: 11px; flex: none; }
+  .legend rect { stroke: var(--ink); stroke-width: 1; }
+
+  /* ---------------- Ledger sheet ---------------- */
+  .sheet {
+    flex: none;
+    position: relative;
+    max-height: 58dvh;
+    overflow-y: auto;
+    background: var(--paper-aged);
+    border-top: 3px double var(--ink);
+    padding: 12px 20px calc(14px + env(safe-area-inset-bottom));
+  }
+  .sheet-eyebrow {
+    display: flex;
+    justify-content: space-between;
+    font: 600 8.5px/1 var(--franklin);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: rgba(43,36,24,.62);
+  }
+  .sheet-title {
+    margin: 4px 0 2px;
+    font: 700 27px/1.1 var(--caslon);
+    color: var(--ink);
+  }
+  .holdline {
+    margin: 0;
+    padding-right: 104px;
+    font: 500 12.5px/1.4 var(--franklin);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .holdline .chip { width: 11px; height: 11px; }
+  .holdline .count {
+    font: 700 14px/1 var(--caslon);
+    letter-spacing: .04em;
+  }
+  .note {
+    margin: 9px 0 12px;
+    padding-left: 10px;
+    border-left: 2px solid var(--rule);
+    font: italic 400 13px/1.5 var(--caslon);
+    color: rgba(43,36,24,.85);
+  }
+
+  /* Signature: rotated rubber-stamp seal */
+  .stamp {
+    position: absolute;
+    top: 31px;
+    right: 16px;
+    transform: rotate(-8deg);
+    color: var(--surf);
+    border: 3px double currentColor;
+    padding: 6px 11px 5px;
+    text-align: center;
+    opacity: .92;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    -webkit-mask-image:
+      radial-gradient(circle at 3px 5px, transparent 1.1px, #000 1.6px),
+      radial-gradient(circle at 9px 2px, transparent 1px, #000 1.5px);
+    -webkit-mask-size: 11px 13px, 17px 19px;
+    -webkit-mask-composite: source-in;
+    mask-image:
+      radial-gradient(circle at 3px 5px, transparent 1.1px, #000 1.6px),
+      radial-gradient(circle at 9px 2px, transparent 1px, #000 1.5px);
+    mask-size: 11px 13px, 17px 19px;
+    mask-composite: intersect;
+  }
+  .stamp-line1 {
+    display: block;
+    font: 700 9.5px/1.3 var(--franklin);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+  .stamp-line2 {
+    display: block;
+    font: 700 14px/1.15 var(--caslon);
+    letter-spacing: .12em;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .stamp {
+      animation: stamp-in .4s cubic-bezier(.2, 1.5, .4, 1) .3s both;
+    }
+    @keyframes stamp-in {
+      from { transform: rotate(-8deg) scale(1.5); opacity: 0; }
+      to   { transform: rotate(-8deg) scale(1);   opacity: .92; }
+    }
+  }
+
+  .ledger-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 2px;
+  }
+  .ledger-head .fleuron { flex: 1; height: 1px; background: var(--rule); }
+  .ledger-head span:not(.fleuron) {
+    font: 600 8.5px/1 var(--franklin);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: rgba(43,36,24,.62);
+    white-space: nowrap;
+  }
+
+  .ch-list { list-style: none; margin: 0; padding: 0; }
+  .ch {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 8px;
+    padding: 11px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .ch:first-child { border-top: none; }
+  .ch--next {
+    background: rgba(179,64,46,.05);
+    outline: 1px solid rgba(179,64,46,.3);
+    padding: 11px 10px;
+    margin: 0 -10px;
+  }
+  .ch-no {
+    font: italic 400 11.5px/1.5 var(--caslon);
+    color: rgba(43,36,24,.6);
+  }
+  .ch-main { min-width: 0; }
+  .next-tag {
+    font: 700 8px/1 var(--franklin);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--fog);
+    margin: 0 0 5px;
+  }
+  .ch-title {
+    margin: 0 0 7px;
+    font: 500 13px/1.4 var(--franklin);
+    color: var(--ink);
+  }
+  .ch-marks { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .seal {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 7px;
+    font: 700 9px/1 var(--franklin);
+    letter-spacing: .08em;
+    border: 1.5px solid currentColor;
+    transform: rotate(-2.5deg);
+    -webkit-mask-image: radial-gradient(circle at 4px 3px, transparent .9px, #000 1.4px);
+    -webkit-mask-size: 13px 11px;
+    mask-image: radial-gradient(circle at 4px 3px, transparent .9px, #000 1.4px);
+    mask-size: 13px 11px;
+  }
+  .seal--fog  { color: var(--fog); }
+  .seal--surf { color: var(--surf); }
+  .seal--open {
+    color: rgba(43,36,24,.6);
+    border: 1px dashed rgba(43,36,24,.45);
+    font-weight: 500;
+    transform: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .seal .tick { width: 9px; height: 9px; flex: none; }
+
+  .actions {
+    margin-top: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .btn-primary {
+    appearance: none;
+    width: 100%;
+    padding: 13px 16px;
+    background: var(--fog);
+    color: var(--paper);
+    border: 1px solid var(--ink);
+    box-shadow: 0 2px 0 var(--ink);
+    font: 700 12px/1 var(--franklin);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    text-shadow: 0 1px 0 rgba(43,36,24,.4);
+    cursor: pointer;
+  }
+  .btn-primary:active {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 var(--ink);
+  }
+  .btn-secondary {
+    appearance: none;
+    width: 100%;
+    padding: 10px 16px;
+    background: transparent;
+    color: var(--ink);
+    border: 1px dashed rgba(43,36,24,.5);
+    font: 500 11.5px/1 var(--franklin);
+    letter-spacing: .02em;
+    cursor: pointer;
+  }
+  .btn-secondary:active { background: rgba(43,36,24,.06); }
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .confirm {
+    margin: 0;
+    font: italic 400 12.5px/1.5 var(--caslon);
+    color: var(--fog);
+  }
+
+  @media (max-height: 620px) {
+    .tally-nums { font-size: 30px; }
+    .sheet { max-height: 64dvh; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="frame" aria-hidden="true"></div>
+
+  <header class="masthead">
+    <div class="eyebrow-line" aria-hidden="false">
+      <span class="fleuron" aria-hidden="true"></span>
+      <span class="eyebrow" id="eyebrow">Clipper Conquest · Field Ledger</span>
+      <span class="fleuron" aria-hidden="true"></span>
+    </div>
+    <div class="scoreline">
+      <div class="team team--fog">
+        <svg class="chip" viewBox="0 0 16 16" aria-hidden="true"><rect x=".5" y=".5" width="15" height="15" fill="url(#hatchFog)"/></svg>
+        <span class="team-name" id="name-fog">Team Fog</span>
+      </div>
+      <div class="tally">
+        <div class="tally-nums"><span id="score-fog">4</span><span class="dash" aria-hidden="true">—</span><span id="score-surf">3</span></div>
+        <div class="tally-roman" id="tally-roman" aria-hidden="true">iv — iii</div>
+        <div class="tally-cap">Neighborhoods held</div>
+      </div>
+      <div class="team team--surf">
+        <svg class="chip" viewBox="0 0 16 16" aria-hidden="true"><rect x=".5" y=".5" width="15" height="15" fill="url(#hatchSurf)"/></svg>
+        <span class="team-name" id="name-surf">Team Surf</span>
+      </div>
+    </div>
+    <p class="caption"><span id="contested">2</span> neighborhoods contested&thinsp;·&thinsp;<span class="clock" id="clock">2 h 47 m 12 s</span> remaining</p>
+  </header>
+
+  <main class="plate">
+    <div class="plate-map">
+      <span class="plate-tag">Plate I · San Francisco</span>
+      <svg class="cc-map" viewBox="0 0 200 200" role="img" aria-label="Survey map of San Francisco neighborhoods. Team Fog holds 4, Team Surf holds 3, 2 are contested, 6 are unclaimed. Mission, held by Team Surf 2 to 1, is selected.">
+        <defs>
+          <pattern id="seaLines" width="8" height="3" patternUnits="userSpaceOnUse">
+            <path d="M0,1.5 H8" stroke="#C9BD9F" stroke-width="0.45"/>
+          </pattern>
+          <pattern id="hatchFog" width="4.6" height="4.6" patternUnits="userSpaceOnUse">
+            <rect width="4.6" height="4.6" fill="#B3402E" opacity="0.08"/>
+            <path d="M0,0 L4.6,4.6" stroke="#B3402E" stroke-width="0.75"/>
+          </pattern>
+          <pattern id="hatchSurf" width="4.6" height="4.6" patternUnits="userSpaceOnUse">
+            <rect width="4.6" height="4.6" fill="#2C5F8A" opacity="0.08"/>
+            <path d="M4.6,0 L0,4.6" stroke="#2C5F8A" stroke-width="0.75"/>
+          </pattern>
+          <pattern id="hatchTied" width="5.4" height="5.4" patternUnits="userSpaceOnUse">
+            <path d="M0,0 L5.4,5.4" stroke="#B3402E" stroke-width="0.65"/>
+            <path d="M5.4,0 L0,5.4" stroke="#2C5F8A" stroke-width="0.65"/>
+          </pattern>
+        </defs>
+        <rect class="sea" x="0" y="0" width="200" height="200"/>
+        <rect class="neatline" x=".5" y=".5" width="199" height="199"/>
+        <path class="coast" d="M4,23 L50,14 L78,20 L110,12 L148,6 L162,35 L188,53 L185,81 L176,108 L196,105 L198,149 L193,194 L150,192 L86,188 L11,184 L6,147 L3,94 L4,48 Z"/>
+        <g class="compass" aria-hidden="true" transform="translate(175,22)">
+          <circle class="compass-bed" r="10.5"/>
+          <circle class="compass-ring" r="8.2"/>
+          <circle class="compass-inner" r="5.6"/>
+          <path class="compass-ew" d="M-5.6,0 L0,-1.3 L5.6,0 L0,1.3 Z"/>
+          <path class="compass-ns" d="M0,-7.7 L1.5,0 L0,3.6 L-1.5,0 Z"/>
+          <circle class="compass-pin" r="0.8"/>
+          <text class="compass-n" y="-10.4">N</text>
+        </g>
+      </svg>
+    </div>
+    <ul class="legend">
+      <li><svg viewBox="0 0 12 12" aria-hidden="true"><rect x=".5" y=".5" width="11" height="11" fill="url(#hatchFog)"/></svg>Team Fog holds</li>
+      <li><svg viewBox="0 0 12 12" aria-hidden="true"><rect x=".5" y=".5" width="11" height="11" fill="url(#hatchSurf)"/></svg>Team Surf holds</li>
+      <li><svg viewBox="0 0 12 12" aria-hidden="true"><rect x=".5" y=".5" width="11" height="11" fill="url(#hatchTied)"/></svg>Contested</li>
+      <li><svg viewBox="0 0 12 12" aria-hidden="true"><rect x=".5" y=".5" width="11" height="11" fill="#F0E9D8"/></svg>Unclaimed</li>
+      <li><svg viewBox="0 0 12 12" aria-hidden="true"><rect x=".5" y=".5" width="11" height="11" fill="#C9C5A5"/></svg>Park · out of play</li>
+    </ul>
+  </main>
+
+  <section class="sheet" aria-label="Ledger entry for Mission">
+    <div class="sheet-eyebrow">
+      <span id="entry-no">Ledger entry No. 10</span>
+      <span>Three challenges per district</span>
+    </div>
+    <h1 class="sheet-title" id="sheet-title">Mission</h1>
+    <p class="holdline" id="holdline"></p>
+    <div class="stamp" id="stamp" aria-hidden="true">
+      <span class="stamp-line1" id="stamp-line1">Held by Surf</span>
+      <span class="stamp-line2" id="stamp-line2">2–1</span>
+    </div>
+    <p class="note" id="note"></p>
+    <div class="ledger-head">
+      <span class="fleuron" aria-hidden="true"></span>
+      <span>Record of challenges</span>
+      <span class="fleuron" aria-hidden="true"></span>
+    </div>
+    <ol class="ch-list" id="ch-list"></ol>
+  </section>
+</div>
+
+<script src="shared.js"></script>
+<script>
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var roman = ['', 'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'];
+
+  /* ---------- Masthead ---------- */
+  $('#eyebrow').textContent = 'Clipper Conquest · Field ledger of ' + CC.teams[CC.you].name;
+  $('#name-fog').textContent = CC.teams.fog.name;
+  $('#name-surf').textContent = CC.teams.surf.name;
+  $('#score-fog').textContent = CC.score.fog;
+  $('#score-surf').textContent = CC.score.surf;
+  $('#tally-roman').textContent = roman[CC.score.fog] + ' — ' + roman[CC.score.surf];
+  $('#contested').textContent = CC.score.contested;
+
+  /* Countdown, set like a plate caption */
+  var parts = CC.clock.split(':').map(Number);
+  var left = parts[0] * 3600 + parts[1] * 60 + parts[2];
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  function drawClock() {
+    var h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), s = left % 60;
+    $('#clock').textContent = h + ' h ' + pad(m) + ' m ' + pad(s) + ' s';
+  }
+  drawClock();
+  setInterval(function () { if (left > 0) { left--; drawClock(); } }, 1000);
+
+  /* ---------- Map plate ---------- */
+  var svg = document.querySelector('svg.cc-map');
+  ccRenderMap(svg, { badges: true, labels: ['mission', 'ggpark', 'presidio'] });
+
+  /* Lift the selected polygon above its neighbors so its heavy outline is unbroken,
+     but keep it beneath badges and labels. */
+  var sel = svg.querySelector('.hood--selected');
+  var firstText = svg.querySelector('.hood-badge, .hood-label');
+  if (sel) svg.insertBefore(sel, firstText || null);
+
+  /* Set park labels in cartographic italic. */
+  var parkNames = CC.PARKS.map(function (p) { return p.name; });
+  svg.querySelectorAll('.hood-label').forEach(function (t) {
+    if (parkNames.indexOf(t.textContent) !== -1) t.classList.add('park-label');
+  });
+
+  /* ---------- Ledger sheet ---------- */
+  var hood = CC.HOODS.find(function (h) { return h.id === CC.detail.id; });
+  var counts = CC.state[CC.detail.id];
+  var f = counts[0], s = counts[1];
+  var leader = s > f ? 'surf' : 'fog';
+  var leadScore = Math.max(f, s) + '–' + Math.min(f, s);
+
+  $('#entry-no').textContent = 'Ledger entry No. ' + (CC.HOODS.indexOf(hood) + 1);
+  $('#sheet-title').textContent = hood.name;
+  $('#note').textContent = CC.detail.note;
+  $('#stamp-line1').textContent = 'Held by ' + CC.teams[leader].short;
+  $('#stamp-line2').textContent = leadScore;
+
+  $('#holdline').innerHTML =
+    '<svg class="chip" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="1" width="14" height="14" fill="url(#hatch' +
+    (leader === 'fog' ? 'Fog' : 'Surf') + ')"/></svg>' +
+    '<span>' + CC.teams[leader].name + ' holds ' + hood.name + '</span>' +
+    '<span class="count">' + leadScore + '</span>';
+
+  var TICK =
+    '<svg class="tick" viewBox="0 0 10 10" aria-hidden="true">' +
+    '<path d="M1.5 5.5 L4 8 L8.5 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  function sealHTML(teamId, time) {
+    var team = CC.teams[teamId];
+    if (time) {
+      return '<span class="seal seal--' + teamId + '">' + TICK + team.short + ' · ' + time + '</span>';
+    }
+    return '<span class="seal seal--open" data-team="' + teamId + '">' + team.short + ' — open</span>';
+  }
+
+  /* The first challenge Team Fog has not completed carries the actions. */
+  var nextForYou = CC.detail.challenges.find(function (c) { return !c[CC.you]; });
+
+  var list = $('#ch-list');
+  CC.detail.challenges.forEach(function (c) {
+    var isNext = nextForYou && c.n === nextForYou.n;
+    var li = document.createElement('li');
+    li.className = 'ch' + (isNext ? ' ch--next' : '');
+    li.innerHTML =
+      '<span class="ch-no">No. ' + c.n + '</span>' +
+      '<div class="ch-main">' +
+        (isNext ? '<p class="next-tag">Up next for ' + CC.teams[CC.you].name + '</p>' : '') +
+        '<p class="ch-title">' + c.title + '</p>' +
+        '<div class="ch-marks">' + sealHTML('fog', c.fog) + sealHTML('surf', c.surf) + '</div>' +
+        (isNext
+          ? '<div class="actions">' +
+              '<button type="button" class="btn-primary">Mark complete</button>' +
+              '<button type="button" class="btn-secondary">Add photo or video (optional)</button>' +
+            '</div>'
+          : '') +
+      '</div>';
+    list.appendChild(li);
+  });
+
+  /* Mark complete: stamp the row for your team, on your word. */
+  var primary = document.querySelector('.btn-primary');
+  if (primary) {
+    primary.addEventListener('click', function (e) {
+      var row = e.target.closest('.ch');
+      var open = row.querySelector('.seal--open[data-team="' + CC.you + '"]');
+      if (open) open.outerHTML = sealHTML(CC.you, 'just now');
+      row.querySelector('.actions').innerHTML =
+        '<p class="confirm">Recorded for ' + CC.teams[CC.you].name + '. Honor system — no proof required.</p>';
+    });
+  }
+})();
+</script>
+</body>
+</html>
