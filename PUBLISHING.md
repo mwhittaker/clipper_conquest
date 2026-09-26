@@ -3,7 +3,7 @@
 `docs/` is the published site: `index.html` (the guide), `brochure.html` (the print
 brochure, which the guide's "Print the brochure" button loads), `challenges.json`,
 `sf_neighborhoods.geojson`, `muni_routes.geojson` and `.nojekyll`. Nothing else from
-`mockups/` is published (not the app prototype or the old pitches). `docs/` is generated.
+`mockups/` is published (not the app prototype). `docs/` is generated.
 Never edit it by hand.
 
 `docs_build.py` rebuilds it and needs python3. If the `qrcode` library isn't installed, it
@@ -37,7 +37,7 @@ rendered video frames.
    python3 docs_build.py https://USERNAME.github.io/clipper_conquest/
    ```
    It must end with `docs/ ready for ...`. It stops with `ERROR` lines if a published page
-   references a local URL (for example yurt.local) or a file that is missing from `docs/`.
+   references a local URL (for example localhost) or a file that is missing from `docs/`.
 3. Commit and push:
    ```sh
    git init -b main
@@ -88,8 +88,7 @@ Pages redeploys on every push, usually within a minute. The guide fetches
 
 ## Notes
 
-- `mockups/qr_codes.json` still encodes the `yurt.local:8013` URLs used by the homelab
-  build. `docs_build.py` never changes it. The public QR code is cached in
+- `mockups/qr_codes.json` holds the QR code used by the local brochure build. `docs_build.py` never changes it. The public QR code is cached in
   `mockups/qr_codes.public.json` and regenerated only when the URL changes.
 - Printed brochures point at the URL permanently. Don't rename the repo after printing.
 - Custom domain: add `docs/CNAME` and set it under Settings → Pages. `docs_build.py`

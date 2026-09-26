@@ -13,8 +13,8 @@ Publishing the study guide to GitHub Pages is covered in [PUBLISHING.md](PUBLISH
 
 | Path | What it is |
 | --- | --- |
-| `challenges/` | One Markdown file per neighborhood (candidates plus a recommended trio), design notes (`BRIEF.md`, `DIGEST.md`) and the build scripts that turn them into data and review pages. |
-| `mockups/` | The web front end: `guide.html` (study guide), `v2.html` (game-app prototype), `brochure.html` (generated tri-fold), the map data (`sf_neighborhoods.geojson`, `muni_routes.geojson`, `hood_order.json`), `rules.json` (the single source of truth for the rules) and the early design pitches (`d1`–`d5.html`, `index.html`). |
+| `challenges/` | One Markdown file per neighborhood (candidates plus a recommended trio), design notes (`BRIEF.md`) and the build scripts that turn them into data and review pages. |
+| `mockups/` | The web front end: `guide.html` (study guide), `v2.html` (game-app prototype), `brochure.html` (generated tri-fold), the map data (`sf_neighborhoods.geojson`, `muni_routes.geojson`, `hood_order.json`), `rules.json` (the single source of truth for the rules). |
 | `video/` | The rules explainer video: script, storyboard, render pipeline, and the finished `clipper-conquest-rules.mp4`. |
 | `docs/` | Generated. The published copy of the study guide for GitHub Pages. Don't edit it by hand; rebuild it with `docs_build.py`. |
 | `docs_build.py` | Rebuilds `docs/` from the sources. |
@@ -35,8 +35,8 @@ docker compose down         # stop
 
 This runs `caddy:2` with `mockups/Caddyfile.mockups` (which sends `Cache-Control: no-cache`,
 so edits show up on a plain refresh), mounts `mockups/` read-only, and restarts
-`unless-stopped`. On the yurt homelab the same thing currently runs as a hand-started
-container named `clipper-mockups`, which already holds port 8013. Remove it first
+`unless-stopped`. If another container (for example an older hand-started `clipper-mockups`)
+already holds port 8013, remove it first
 (`docker rm -f clipper-mockups`), or run the compose service on another port:
 `CLIPPER_PORT=18013 docker compose up -d`.
 
@@ -46,8 +46,7 @@ container named `clipper-mockups`, which already holds port 8013. Remove it firs
 cd mockups && python3 -m http.server 8013    # http://localhost:8013/v2.html
 ```
 
-To try it on a phone, open `http://<this machine>:8013/v2.html` from the same network
-(on yurt, `http://yurt.local:8013/v2.html`).
+To try it on a phone, open `http://<this machine>:8013/v2.html` from the same network.
 
 ## State and persistence
 
@@ -89,7 +88,7 @@ All scripts can be run from any directory.
 | --- | --- | --- |
 | `python3 challenges/build_guide_data.py` | After editing any `challenges/*.md` | `mockups/challenges.json` (the recommended trios, read by the guide) |
 | `python3 mockups/sync_rules.py` | After editing `mockups/rules.json` | The rules blocks in `mockups/guide.html` and `mockups/v2.html` |
-| `python3 mockups/build_brochure.py` | After a challenge or rules change | `mockups/brochure.html` (the yurt.local copy, with QR codes from `mockups/qr_codes.json`) |
+| `python3 mockups/build_brochure.py` | After a challenge or rules change | `mockups/brochure.html` (the local copy, with the QR code from `mockups/qr_codes.json`) |
 | `python3 challenges/build_artifact.py` | When the challenge review page needs refreshing | `challenges/review_artifact.html` (the claude.ai review artifact, which must be republished separately) |
 | `python3 docs_build.py https://USERNAME.github.io/clipper_conquest/` | Before publishing | Runs the first three scripts, generates a QR code for the public URL (`mockups/qr_codes.public.json`) and rebuilds `docs/`. See [PUBLISHING.md](PUBLISHING.md). |
 

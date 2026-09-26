@@ -6,7 +6,7 @@ motion note, plus the voice samples. Frames come from video/frames/build.py.
 import base64, io, os, html
 from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
-TTS = '/tmp/claude-1000/-home-mwhittaker-github-mwhittaker-clipper-conquest/499f49c3-c64b-490e-965f-462756b99eeb/scratchpad/tts'
+TTS = os.path.join(HERE, 'render', 'voice-samples')   # optional Piper/Kokoro samples for the review page
 
 # (frame, section, time, voiceover, what moves)
 BEATS = [

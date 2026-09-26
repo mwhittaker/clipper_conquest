@@ -398,7 +398,6 @@ SB['0-tap'] = page(f"""
 <div id="card" style="position:absolute; left:0; top:0; width:150px; height:240px; filter:drop-shadow(0 26px 30px rgba(28,30,33,.28));
   transform:translate(1160px,330px) rotate(8deg)">{CARD_SVG}</div>""")
 
-SB['1a-draw'] = page(f'<div style="position:absolute; left:460px; top:60px; width:1000px; height:960px">{outlines(1.0)}</div>')
 SB['1b-title'] = FRAMES['01-title']
 SB['2a-grey'] = page(f"""<div class="mapbox" style="left:64px; top:64px; width:1000px; height:952px">{mapsvg({}, badges=False)}</div>
 <div class="side" style="left:1130px; top:300px; width:720px">

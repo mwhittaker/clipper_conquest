@@ -1,5 +1,5 @@
 # Serves mockups/ (the v2.html game prototype, guide.html, brochure.html, ...) with caddy,
-# the same way as the hand-started `clipper-mockups` container: http://yurt.local:8013
+# the same way as the hand-started `clipper-mockups` container: http://localhost:8013
 #   docker compose up -d
 # Port override (e.g. to test next to the running container): CLIPPER_PORT=18013 docker compose up -d
 services:

@@ -1,7 +1,7 @@
 # Clipper Conquest — Challenge Design Brief
 
 Context: a Jet Lag: The Game–inspired race across San Francisco. Two teams (Red vs Blue,
-2–6 people each, **including kids**) race to conquer the 41 official SF Analysis
+2–6 people each) race to conquer the 41 official SF Analysis
 Neighborhoods. Each neighborhood has 3 challenges; the team that completes more of them
 holds the neighborhood (ties broken by who got there first); territories can flip.
 Timed game, played on a **weekend, during the day**. Phones are used to mark completions
@@ -18,7 +18,7 @@ fillings of a ravioli and an Oreo and eat both"):
 - **Objective, binary outcomes.** You won the carnival game or you didn't. Completion is
   never a judgment call.
 - **A little absurdity, physically enacted.** Doing a slightly ridiculous thing in a real
-  public place is the show's engine — but for us it must stay kid-friendly and
+  public place is the show's engine — but for us it must stay all-ages and
   non-embarrassing (fun-silly like recreating a statue's pose: yes; performative
   spectacle: no).
 - **Tension mechanics sparingly**: coin-flip-style one-shot challenges are thrilling
@@ -34,7 +34,7 @@ From scavenger-hunt design (GISHWHES, Watson Adventures, corporate hunts):
 
 ## Hard rules for every challenge
 
-1. **Kid-friendly, family-appropriate.** No alcohol, no bars-as-destination, nothing
+1. **All-ages appropriate.** No alcohol, no bars-as-destination, nothing
    embarrassing, nothing risky. Light physical activity fine (stairs, hills, a short
    walk); nothing strenuous.
 2. **Free or cheap.** $0 default; up to ~$10 per challenge is fine when the purchase IS
@@ -60,7 +60,7 @@ From scavenger-hunt design (GISHWHES, Watson Adventures, corporate hunts):
     food, oddities. If your challenge would work equally well two neighborhoods over,
     sharpen it. (Research the neighborhood before writing!)
 11. **Practical safety/comfort**: stick to well-trafficked, daytime-comfortable blocks
-    and places; this is a family game.
+    and places; this is an all-ages game.
 
 ## Output format (exactly this structure, in your assigned file)
 
@@ -109,7 +109,7 @@ JETLAG_EXAMPLES.md, 443 scraped examples):
 - A plain "go there / do the thing" is still allowed when the place is genuinely
   spectacular or hard to reach, or the act itself is the fun — but it's the exception,
   roughly one per neighborhood at most.
-- Everything else still applies: kid-friendly, ≤$10, weekend-daytime, 5–20 min,
+- Everything else still applies: all-ages, ≤$10, weekend-daytime, 5–20 min,
   objective completion, photo designed in, at most one stranger-y candidate.
 - Exemplar: fidi.md (The Blindfold Market / Mind the Doors / Heart Detective).
 - **Partial participation is fine.** A challenge may use only some teammates (two

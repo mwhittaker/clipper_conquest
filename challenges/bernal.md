@@ -82,7 +82,7 @@ on the hill itself and the odd, community-made things Bernal bolted onto it.
   California's first farmers' market (Saturdays 7am–2pm) — which flips into the Alemany
   Flea Market on Sundays (7am–3pm). Saturday: buy one fruit or vegetable for $5 or less
   and every teammate takes a bite. Sunday: buy one treasure for $5 or less that is older
-  than the youngest teammate. Purchase made + photo taken = complete.
+  than the oldest teammate (a printed date or maker's mark proves it). Purchase made + photo taken = complete.
 - **Where:** Alemany Farmers' Market / Flea Market, 100 Alemany Blvd (at the south tip
   of the neighborhood; note the Saturday market closes at 2pm).
 - **Time:** 15 min | **Cost:** ~$5

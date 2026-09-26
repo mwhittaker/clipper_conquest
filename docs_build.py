@@ -6,7 +6,7 @@
 Steps:
   1. challenges/build_guide_data.py  -> mockups/challenges.json   (challenge edits)
   2. mockups/sync_rules.py           -> rules block in guide.html  (rules.json edits)
-  3. mockups/build_brochure.py       -> mockups/brochure.html      (yurt.local build, unchanged)
+  3. mockups/build_brochure.py       -> mockups/brochure.html      (local build, unchanged)
   4. QR code for BASE_URL            -> mockups/qr_codes.public.json
      (same structure as qr_codes.json, plus "guide_url"; regenerated only when the URL
      changes; uses the `qrcode` lib if installed, else a python:3.12-slim container)
@@ -14,7 +14,7 @@ Steps:
   6. copy guide.html -> docs/index.html plus the data files it fetches; write .nojekyll
   7. check the published files for local-only URLs and missing relative references
 
-mockups/qr_codes.json (yurt.local URLs) is never touched, so the homelab build keeps working.
+mockups/qr_codes.json is never touched, so the local build keeps working.
 docs/ is wiped on each run except for a CNAME file, if you add one for a custom domain.
 """
 import argparse, json, os, re, shutil, subprocess, sys
@@ -35,7 +35,7 @@ q.add_data(sys.argv[1]); q.make(fit=True)
 b = io.BytesIO(); q.make_image().save(b, format='PNG')
 print('data:image/png;base64,' + base64.b64encode(b.getvalue()).decode())
 '''
-BAD_URL = re.compile(r'yurt\.local|localhost|127\.0\.0\.1|:8013\b|file://')
+BAD_URL = re.compile(r'//[a-z0-9-]+\.local\b|localhost|127\.0\.0\.1|:8013\b|file://')
 
 
 def run(*cmd):
