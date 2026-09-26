@@ -1241,7 +1241,8 @@ document.getElementById('view-rules').onclick = () => setView('rules');
 document.getElementById('view-timeline').onclick = () => setView('timeline');
 
 /* ---------- clock ---------- */
-let endTime = Number(localStorage.getItem('cc2-end')) || 0;
+let endTime = 0;
+try { endTime = Number(localStorage.getItem('cc2-end')) || 0; } catch (e) {}
 if (!endTime || endTime < Date.now()) {
   endTime = Date.now() + GAME_MS;
   try { localStorage.setItem('cc2-end', endTime); } catch (e) {}
@@ -1300,7 +1301,7 @@ function paintMe() {
   me.title = `${profile.name} · Team ${TEAM_NAME[profile.team]}`;
 }
 document.getElementById('join-reset').onclick = () => {
-  ['cc2-state2', 'cc2-photos', 'cc2-end', 'cc2-profile', 'cc2-view'].forEach(k => localStorage.removeItem(k));
+  try { ['cc2-state2', 'cc2-photos', 'cc2-end', 'cc2-profile', 'cc2-view'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
   location.reload();
 };
 
@@ -1310,7 +1311,8 @@ fetch('sf_neighborhoods.geojson')
   .then(geo => {
     buildMap(geo);
     loadPhotos();
-    setView(localStorage.getItem('cc2-view') || 'map');
+    let saved = null; try { saved = localStorage.getItem('cc2-view'); } catch (e) {}
+    setView(saved || 'map');
     state = loadState() || {};
     hoods.forEach(h => {
       if (!state[h.name]) {

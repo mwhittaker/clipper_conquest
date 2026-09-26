@@ -29,12 +29,6 @@ MID = {
  'Inner Sunset': (2, 0, 'r'), 'Golden Gate Park': (1, 0, 'r'), 'Twin Peaks': (1, 0, 'r'),
  'Glen Park': (2, 1, 'r'), 'Japantown': (0, 1, 'b'), 'Lone Mountain/USF': (1, 0, 'r'),
 }
-END = dict(MID)
-rest = [n for n in ORDER if n not in END]
-for i, n in enumerate(rest):
-    if i >= 12: break                        # 36 of 41 claimed by the end
-    END[n] = (1, 0, 'r') if i % 2 == 0 else (0, 1, 'b')
-END['Western Addition'] = (2, 1, 'r'); END['Chinatown'] = (2, 1, 'r')
 tally = lambda S, t: sum(1 for v in S.values() if v[2] == t)
 
 CSS = """
@@ -326,11 +320,6 @@ def mission(S, rows, verdict, clock, tie=False, flip=False):
 B = lambda w: f'<span class="who b">The blue team</span> {w}'
 R = lambda w: f'<span class="who r">The red team</span> {w}'
 
-def outlines(frac):
-    names = list(HOODS)[:int(len(HOODS) * frac)]
-    paths = ''.join(f'<path d="{HOODS[n]["d"]}" fill="none" stroke="#1C1E21" stroke-width="2.2" vector-effect="non-scaling-stroke"/>' for n in names)
-    return f'<svg viewBox="-20 -20 1040 {H+40:.0f}">{paths}</svg>'
-
 SB = {}
 def tri(cx, cy, w, up=True):
     h = w * .82
@@ -434,17 +423,8 @@ SB['6b-sweep'] = page(f"""{bar(MID, "3:40:02")}
   <div class="row flip"><span class="time">10:50</span><span style="font-weight:700">3 for 3 — <span class="who b">locked for good</span></span></div>
   <div class="verdict" style="margin-top:40px">All three: locked.<br><span style="color:#6A7076">Safe — but it takes a while.</span></div></div>""")
 SB['7a-costs'] = FRAMES['07-steal']
-AFTER = dict(MID); AFTER.update({'Western Addition': (2, 1, 'r'), 'Japantown': (2, 1, 'r'), 'Marina': (2, 1, 'r')})
-m7 = mapsvg(AFTER, steal=True, route=['Western Addition','Japantown','Pacific Heights','Marina'])
-m7 = m7.replace('stroke="#1C1E21" stroke-width', 'stroke="#C42847" stroke-width', 1)
-_unused_7b = page(f"""{bar(AFTER, "1:31:55")}
-<div class="mapbox" style="left:64px; top:150px; width:1000px; height:880px">{m7}</div>
-<div class="side legend" style="left:1130px; top:260px; width:720px">
-  <div class="eyebrow">An hour later</div><h2 style="font-size:72px">Three steals.<br>Six challenges.</h2>
-  <div class="row" style="color:#6A7076">Western Addition, Japantown and the Marina flip to Red.</div>
-  <div class="row" style="color:#6A7076">Every one they held with a single challenge.</div></div>""")
 SB['8a-end'] = FRAMES['08-end']
 FRAMES = SB
 for name, doc in FRAMES.items():
     open(os.path.join(HERE, name + '.html'), 'w').write(doc)
-print('frames:', ', '.join(FRAMES), '| mid', tally(MID, 'r'), tally(MID, 'b'), '| end', tally(END, 'r'), tally(END, 'b'))
+print('frames:', ', '.join(FRAMES), '| mid', tally(MID, 'r'), tally(MID, 'b'))

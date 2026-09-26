@@ -13,7 +13,7 @@ Run:  python3 build_brochure.py     (then re-verify print: headless chrome → p
             alternate QR json (same structure as qr_codes.json) and output path; used by
             ../docs_build.py to build the GitHub Pages copy with public-URL QR codes.
 """
-import json, math, re, glob, html, os, argparse
+import json, math, re, glob, html, os, sys, argparse
 
 _ap = argparse.ArgumentParser()
 _ap.add_argument('--qr')
@@ -25,17 +25,9 @@ OUT_FILE = os.path.abspath(_args.out) if _args.out else os.path.join(_here, 'bro
 os.chdir(_here)
 
 # ---------- real challenge trios ----------
-trios = {}
-for fn in glob.glob('../challenges/*.md'):
-    if os.path.basename(fn) in ('BRIEF.md', 'QUEUE.md', 'DIGEST.md', 'JETLAG_EXAMPLES.md'):
-        continue
-    text = open(fn).read()
-    name = re.match(r'# (.+)', text).group(1).strip()
-    cands = re.findall(r'### \d+\.\s*(.+)', text)
-    tm = re.search(r'## Recommended trio\s*\n+\**([\d,\sand&]+)\**', text)
-    nums = [int(x) for x in re.findall(r'\d+', tm.group(1))][:3]
-    key = re.sub(r'\s*\(.*\)', '', name).lower()
-    trios[key] = [cands[n - 1].strip() for n in nums]
+sys.path.insert(0, os.path.join(_here, '..', 'challenges'))
+from hoodparse import all_hoods, plain
+trios = {h['clean'].lower(): [plain(c['title']) for c in h['trio_cands']] for h in all_hoods()}
 
 # ---------- projection ----------
 geo = json.load(open('sf_neighborhoods.geojson'))

@@ -90,7 +90,7 @@
     min-width: 22px; height: 18px; padding: 0 5px; border-radius: 4px;
     font-size: 11px; font-weight: 700; color: #fff;
   }
-  .map-grid { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 22px; align-items: stretch; }
+  .map-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(460px, 1fr); gap: 22px; align-items: stretch; }
   .map-shell {
     position: relative; border: 1px solid var(--line); border-radius: 12px;
     overflow: hidden; height: clamp(560px, 78vh, 900px); background: #BFDDF3;
@@ -148,7 +148,7 @@
   .panel .ph { color: var(--muted); font-size: 16px; }
   .panel .ph b { color: var(--ink); }
   .panel .pnum { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-  .panel h3 { font-size: 28px; font-weight: 800; letter-spacing: -0.01em; margin: 2px 0 18px; line-height: 1.15; }
+  .panel h3 { font-size: 32px; font-weight: 800; letter-spacing: -0.01em; margin: 2px 0 18px; line-height: 1.15; }
   .card {
     flex: 1; min-height: 0; overflow-y: auto;
     background: #F6F7F8; border: 1px solid var(--line); border-radius: 14px;
@@ -157,14 +157,14 @@
   .card { display: grid; }
   .card .slide { grid-area: 1 / 1; visibility: hidden; overflow-wrap: anywhere; }
   .card .slide.on { visibility: visible; }
-  .card .cwhich { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-  .card .ctitle { font-size: 24px; font-weight: 700; line-height: 1.25; margin: 8px 0 14px; text-wrap: balance; }
-  .card .cdesc { font-size: 16.5px; line-height: 1.6; color: #3A4148; }
+  .card .cwhich { font-size: 13.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .card .ctitle { font-size: 28px; font-weight: 700; line-height: 1.25; margin: 8px 0 14px; text-wrap: balance; }
+  .card .cdesc { font-size: 18.5px; line-height: 1.6; color: #3A4148; }
   .card .cwhich .tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px;
-    border: 1px solid var(--line); background: #fff; letter-spacing: 0; text-transform: none; font-size: 12px; }
+    border: 1px solid var(--line); background: #fff; letter-spacing: 0; text-transform: none; font-size: 13px; }
   .card .cwhich .tag.oneshot { background: #F9E4E8; color: #A31F3B; border-color: transparent; }
   .card .cwhich .tag.retry { background: #FDF2DC; color: #8A5A00; border-color: transparent; }
-  .card .cmeta { font-size: 14px; line-height: 1.5; color: var(--muted); margin: 14px 0 0; }
+  .card .cmeta { font-size: 15.5px; line-height: 1.5; color: var(--muted); margin: 14px 0 0; }
   .card .cmeta + .cmeta { margin-top: 6px; }
   .card .cmeta b { color: var(--ink); font-weight: 600; }
   .cnav { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
@@ -304,56 +304,10 @@
 
 
 <script>
-/* Placeholder challenges until the real list lands — picked deterministically
-   per neighborhood so the same challenge always shows the same text.
-   (Copied verbatim from v2.html — keep in sync.) */
-const FAKE_TITLES = [
-  'Take a team photo with the oldest storefront you can find',
-  'Order the weirdest thing on the menu and finish it',
-  'Find a mural and recreate the pose',
-  'Get a stranger to teach you a local fact',
-  'Climb to the highest public point in the neighborhood',
-  'Find a plaque and read it aloud to a teammate',
-  'Buy something under $5 from a corner store',
-  'Find a street named after a person and learn who they were',
-  'Spot a dog in a stroller or other neighborhood celebrity',
-  'Take a photo mimicking a statue or sculpture',
-  'Find the best view and take a team panorama',
-  'Get a barista to draw your team logo in latte art',
-  'Find a community garden and name three plants in it',
-  'Ride one form of public transit at least one stop',
-  'Trade something for a book at a little free library',
-  'High-five someone wearing your team’s color',
-  'Find the neighborhood’s oldest bar or cafe and toast',
-  'Photograph a house painted in your team’s color',
-  'Find a street performer and tip them',
-  'Pose under the neighborhood sign or gateway',
-];
-const FAKE_DESCS = [
-  'Everyone on the team must appear in the photo.',
-  'Any storefront counts as long as the name is visible in your photo. If the owner asks what you are doing, you must explain the game with a straight face.',
-  'Walk the full block before you choose. The photo must include at least two teammates, the item in question, and something that proves which neighborhood you are in — a street sign works, a receipt works, a recognizable landmark works. If a local offers to help, you must accept the help and include them in the photo. No take-backs once you tap complete.',
-  'If the neighborhood makes this impossible, improvise: find the closest equivalent and document your reasoning in the photo itself. Judges (there are no judges) will be lenient.',
-  'One attempt per team. If both teams attempt this at the same location at the same time, the first to press the button wins the tiebreak, so walk fast but do not run.',
-  'The photo must clearly show where you are.',
-  'This one has rules: no phones may appear in the shot, at least one team member must be airborne, and the background must contain something older than the Golden Gate Bridge. Interpret that however you like — the honor system is doing a lot of work here, and the other team will absolutely zoom in on your photo after the game to check.',
-  'Ask first. Tip well. Photograph the result from close enough that nobody could mistake it for a stock image.',
-];
-function hashStr(s) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
 let CHALLENGES = {};   // official hood name -> [3 challenges], from challenges.json
-function fakeChallenge(name, ci) {
-  const h = hashStr(name);
-  return {
-    title: FAKE_TITLES[(h + ci * 7) % FAKE_TITLES.length],
-    do: FAKE_DESCS[(h + ci) % FAKE_DESCS.length], where: '', time: '', cost: '', fail: '', type: '', photo: '',
-  };
-}
+const MISSING = { title: 'Challenges didn’t load', do: 'Reload the page to try again.', where: '', time: '', cost: '', fail: '', type: '', photo: '' };
 function challengeFor(name, ci) {
-  return (CHALLENGES[name] && CHALLENGES[name][ci]) || fakeChallenge(name, ci);
+  return (CHALLENGES[name] && CHALLENGES[name][ci]) || MISSING;
 }
 // Build one card slide. Text fields arrive as pre-escaped HTML from build_guide_data.py.
 function buildSlide(c, ci) {
@@ -407,10 +361,6 @@ const SHORT_NAMES = {
   'Bernal Heights': 'Bernal',
 };
 const LABEL_TWEAKS = {};  // no longer needed: fitting handles placement
-const LABEL_TWEAKS_OLD = {
-  'North Beach': [0, 10],
-  'Golden Gate Park': [70, 0],
-};
 
 function project(features) {
   let minLon = 999, maxLon = -999, minLat = 999, maxLat = -999;
@@ -426,27 +376,6 @@ function project(features) {
   return { pt, W, H };
 }
 
-// Longest horizontal run of land at height y, per ring (so a two-island
-// neighborhood never gets a "chord" spanning the water between them).
-function widestChordAt(rings, y) {
-  let best = null;
-  for (const pts of rings) {
-    const xs = [];
-    for (let i = 0; i < pts.length - 1; i++) {
-      const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
-      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
-        xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
-      }
-    }
-    xs.sort((a, b) => a - b);
-    for (let i = 0; i + 1 < xs.length; i += 2) {
-      const len = xs[i + 1] - xs[i];
-      if (!best || len > best.len) best = { len, x: (xs[i] + xs[i + 1]) / 2 };
-    }
-  }
-  return best;
-}
-
 function insideOuters(outers, x, y) {
   let cnt = 0;
   for (const pts of outers) {
@@ -458,15 +387,6 @@ function insideOuters(outers, x, y) {
     }
   }
   return cnt % 2 === 1;
-}
-
-function centroid(ring) {
-  let a = 0, cx = 0, cy = 0;
-  for (let i = 0; i < ring.length - 1; i++) {
-    const cross = ring[i][0] * ring[i+1][1] - ring[i+1][0] * ring[i][1];
-    a += cross; cx += (ring[i][0] + ring[i+1][0]) * cross; cy += (ring[i][1] + ring[i+1][1]) * cross;
-  }
-  return [cx / (3 * a), cy / (3 * a)];
 }
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -599,11 +519,10 @@ function buildMap(geo, muni) {
       const name = f.properties.name;
       const rings = f.geometry.type === 'Polygon' ? [f.geometry.coordinates]
                                                   : f.geometry.coordinates;
-      let d = '', first = null, minY = 1e9, maxY = -1e9;
+      let d = '', minY = 1e9, maxY = -1e9;
       const outers = [];
       rings.forEach(poly => poly.forEach((ring, ri) => {
         const pts = ring.map(pt);
-        if (!first) first = pts;
         if (ri === 0) outers.push(pts);
         pts.forEach(p => { if (p[1] < minY) minY = p[1]; if (p[1] > maxY) maxY = p[1]; });
         d += 'M' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L') + 'Z';
@@ -870,7 +789,11 @@ function enableMapGestures(svg, W, H, onZoom) {
     apply();
   }
   svg.addEventListener('dblclick', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, 2); });
-  svg.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.002)); }, { passive: false });
+  svg.addEventListener('wheel', e => {
+    const f = Math.exp(-e.deltaY * 0.002);
+    if (f < 1 && view.w >= W - 1e-6) return;          // fully zoomed out: let the page scroll
+    e.preventDefault(); zoomAt(e.clientX, e.clientY, f);
+  }, { passive: false });
 
   if (onZoom) onZoom(1);
 }
@@ -971,7 +894,7 @@ window.addEventListener('resize', () => {
 });
 
 document.addEventListener('keydown', e => {
-  if (e.target.closest('input, textarea') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest('input, textarea, select, video, audio, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return;
   if (!showCard && !'aAdD'.includes(e.key)) return;
   if (selected < 0 && 'aAdD'.includes(e.key)) { selectHood(0); return; }
   if (e.key === 'ArrowLeft') { showCard(cardIdx - 1); e.preventDefault(); }
@@ -999,7 +922,7 @@ document.getElementById('print-btn').addEventListener('click', () => {
 Promise.all([
   fetch('sf_neighborhoods.geojson').then(r => r.json()),
   fetch('muni_routes.geojson').then(r => r.json()),
-  fetch('challenges.json?v=' + Date.now()).then(r => r.json()).catch(() => ({})),
+  fetch('challenges.json?v=' + Date.now()).then(r => r.json()).catch(err => { console.error('challenges.json', err); return {}; }),
 ]).then(([geo, muni, chal]) => {
   CHALLENGES = chal;
   buildMap(geo, muni);

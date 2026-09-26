@@ -6,7 +6,6 @@ Prints the shell command; run it inside an ffmpeg container with /work = video/r
 import json, os
 HERE = os.path.dirname(os.path.abspath(__file__))
 tl = json.load(open(os.path.join(HERE, 'timeline.json')))
-start = {b['id']: b['start'] for b in tl['beats']}
 
 inputs, filters, labels = ['-framerate', str(tl['fps']), '-i', '/work/out/frames/f%05d.jpg'], [], []
 n = 1
@@ -28,8 +27,8 @@ SFX = [
     (tl['events']['tap'], 'sine=f=900:d=0.05,afade=t=out:st=0.01:d=0.04', 0.25),                   # soft tap
     (tl['events']['win'], "aevalsrc='0.22*(sin(2*PI*784*t)+sin(2*PI*988*t)*gte(t,0.12)+sin(2*PI*1175*t)*gte(t,0.24)+sin(2*PI*1568*t)*gte(t,0.36))*exp(-2.2*t)':d=1.6", 0.5),  # win fanfare
     (tl['events']['win'] + 0.05, "anoisesrc=d=1.2:c=pink:a=0.25,highpass=f=3000,afade=t=out:st=0.1:d=1.1", 0.35),  # confetti rustle
-    (start['6b-sweep'] + 5.4, 'sine=f=110:d=0.18', 0.9),                             # lock clunk
-    (start['6b-sweep'] + 5.42, 'anoisesrc=d=0.05:c=brown:a=0.8', 0.5),
+    (tl['events']['lock'], 'sine=f=110:d=0.18', 0.9),                             # lock clunk
+    (tl['events']['lock'] + 0.02, 'anoisesrc=d=0.05:c=brown:a=0.8', 0.5),
 ]
 for t, src, vol in SFX:
     inputs += ['-f', 'lavfi', '-i', src]

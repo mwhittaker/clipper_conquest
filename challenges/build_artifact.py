@@ -8,41 +8,12 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 order = json.load(open('../mockups/hood_order.json'))
 pos = {n: i for i, n in enumerate(order)}
 
-def parse_field(block, label):
-    m = re.search(r'- \*\*' + label + r':\*\*\s*(.*?)(?=\n- \*\*|\Z)', block, re.S)
-    return re.sub(r'\s+', ' ', m.group(1)).strip() if m else ''
-
-def md_inline(s):
-    s = html.escape(s)
-    s = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', s)
-    s = re.sub(r'(?<!\w)\*([^*]+)\*(?!\w)', r'<i>\1</i>', s)
-    return s
+from hoodparse import all_hoods, md_inline
 
 hoods = []
-for fn in glob.glob('*.md'):
-    if fn in ('BRIEF.md', 'QUEUE.md', 'DIGEST.md', 'JETLAG_EXAMPLES.md'): continue
-    text = open(fn).read()
-    name = re.match(r'# (.+)', text).group(1).strip()
-    clean = re.sub(r'\s*\(.*\)', '', name)
-    sketch_m = re.search(r'^# .+\n+(.+?)\n\n## Candidates', text, re.S)
-    sketch = re.sub(r'\s+', ' ', sketch_m.group(1)) if sketch_m else ''
-    cands = []
-    for m in re.finditer(r'### (\d+)\.\s*(.+?)\n(.*?)(?=### \d+\.|## Recommended trio)', text, re.S):
-        block = m.group(3)
-        tc = parse_field(block, 'Time')
-        tm = re.match(r'(.*?)\|\s*\*\*Cost:\*\*\s*(.*)', tc)
-        cands.append({
-            'title': m.group(2).strip(),
-            'do': parse_field(block, 'Do'), 'where': parse_field(block, 'Where'),
-            'time': tm.group(1).strip() if tm else tc,
-            'cost': tm.group(2).strip() if tm else '',
-            'fail': parse_field(block, 'Failable'), 'photo': parse_field(block, 'Photo'),
-            'type': parse_field(block, 'Type') or 'Untagged',
-        })
-    trio_m = re.search(r'## Recommended trio\s*\n+\**([\d,\sand&]+)\**(.*)', text, re.S)
-    trio = [int(x) for x in re.findall(r'\d+', trio_m.group(1))][:3]
-    note = re.sub(r'\s+', ' ', trio_m.group(2)).strip(' —-*')
-    hoods.append({'name': clean, 'sketch': sketch, 'cands': cands, 'trio': trio, 'note': note})
+for p in all_hoods():
+    cands = [dict(c, type=c['type'] or 'Untagged') for c in p['cands']]
+    hoods.append({'name': p['clean'], 'sketch': p['sketch'], 'cands': cands, 'trio': p['trio'], 'note': p['note']})
 
 name_by_clean = {re.sub(r'\s*\(.*\)', '', o): o for o in order}
 for h in hoods:
@@ -137,9 +108,9 @@ n_cands = sum(len(h['cands']) for h in hoods)
 from collections import Counter
 trio_ct, all_ct = Counter(), Counter()
 for h in hoods:
-    for k, c in enumerate(h['cands'], 1):
+    for c in h['cands']:
         all_ct[c['type']] += 1
-        if k in h['trio']: trio_ct[c['type']] += 1
+        if c['num'] in h['trio']: trio_ct[c['type']] += 1
 fam_rows = ''.join(
     f'<tr><td>{html.escape(t)}</td><td>{trio_ct[t]}</td><td>{all_ct[t]}</td>'
     f'<td><i style="width:{100*trio_ct[t]/max(trio_ct.values())}%"></i></td></tr>'
@@ -153,7 +124,7 @@ for h in hoods:
     chips.append(f'<a href="#{h["slug"]}">{h["num"]} {html.escape(h["name"])}</a>')
     trio_html = []
     for tn in h['trio']:
-        c = h['cands'][tn-1]
+        c = next(c for c in h['cands'] if c['num'] == tn)
         meta = ' · '.join(x for x in (html.escape(c['time']), html.escape(c['cost'])) if x)
         trio_html.append(f'''<div class="chal">
       <div class="chal-head"><h3>{md_inline(c['title'])}</h3>{type_chip(c['type'])}{fail_badge(c['fail'])}</div>
@@ -163,8 +134,8 @@ for h in hoods:
       <p class="photo">📷 {md_inline(c['photo'])}</p>
     </div>''')
     others = []
-    for k, c in enumerate(h['cands'], 1):
-        if k in h['trio']: continue
+    for c in h['cands']:
+        if c['num'] in h['trio']: continue
         others.append(f'<div class="alt"><b>{md_inline(c["title"])}</b>{type_chip(c["type"])}{fail_badge(c["fail"])}'
                       f'<span> — {md_inline(c["do"])}</span></div>')
     sections.append(f'''<section id="{h['slug']}">

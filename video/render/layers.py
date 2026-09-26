@@ -57,13 +57,22 @@ COIT = '''<svg viewBox="0 0 600 680" preserveAspectRatio="xMidYMid slice" class=
 <circle cx="398" cy="352" r="30" fill="#3F7A3F"/><circle cx="432" cy="364" r="22" fill="#4C8A4A"/>
 <path d="M0 600 C200 580 400 590 600 575 V680 H0Z" fill="#3A6E3C"/></svg>'''
 
+LOCK_AT = 5.4   # seconds into the Hayes Valley beat (6b-sweep) when the third check lands and the lock pops
+
+
+def zero_offset(c2):
+    """Seconds after the 2a-grey voiceover starts when the game clock hits zero: most of the way
+    through its second caption. render/build.py holds the beat long enough for the finale after it."""
+    return c2[1][0] + .72 * (c2[1][1] - c2[1][0]) if len(c2) > 1 else 8
+
+
 def build(tl, caps):
     B = {b['id']: b for b in tl}
     ev = {}
     # --- title + 41 neighborhoods: continuous conquest sim ---
     s1, s2 = B['1b-title'], B['2a-grey']
     c2 = caps.get('2a-grey', [])
-    zero = s2['vo'] + (c2[1][0] + .72 * (c2[1][1] - c2[1][0]) if len(c2) > 1 else 8)
+    zero = s2['vo'] + zero_offset(c2)
     sim = {
         'T0': s1['start'] + .7, 'TZ': round(zero, 3), 'start': s1['start'], 'slide': s2['start'], 'end': s2['start'] + s2['dur'],
         'r1': [930, 60, 900, 960], 'r2': [64, 64, 1000, 952],
@@ -103,10 +112,11 @@ def build(tl, caps):
     # --- Hayes Valley lock ---
     s6 = B['6b-sweep']['start']; hv = zoom('Hayes Valley', 2.6); h1, h2, h3 = interior_points('Hayes Valley', 3, avoid=hv[2] * .05)
     top = hv[1] - 60
-    hay = {'view': hv, 'start': s6, 'end': s6 + B['6b-sweep']['dur'] + .3, 'r': hv[2] * .026, 'lock': s6 + 5.4, 'fill': s6 + 1.2,
+    hay = {'view': hv, 'start': s6, 'end': s6 + B['6b-sweep']['dur'] + .3, 'r': hv[2] * .026, 'lock': s6 + LOCK_AT, 'fill': s6 + 1.2,
            'legs': [{'team': 'b', 'pts': [[h1[0], top], h1, h2, h3, [h3[0] + 30, top]],
                      'times': [s6 + .1, s6 + .8, s6 + 1.4, s6 + 2.1, s6 + 3.0, s6 + 3.7, s6 + 5.8, s6 + 6.8],
                      'done': [s6 + 1.2, s6 + 2.8, s6 + 4.4]}]}
+    ev['lock'] = hay['lock']
     # --- strategy race ---
     s7 = B['7a-costs']
     strat = {'start': s7['start'], 'end': s7['start'] + s7['dur'] + .45, 'T0': s7['start'] + .7, 'rect': [64, 150, 1000, 880],
