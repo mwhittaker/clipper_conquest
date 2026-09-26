@@ -4,6 +4,6 @@ video/render/out/
 video/render/poster/
 video/render/out_cmd.sh
 
-# Claude's scratch space for mockups and experiments; served locally at
+# Scratch space for draft mockups and experiments; served locally at
 # http://localhost:8013/drafts/ and never committed or published.
-mockups/drafts/
+.donotsubmit/

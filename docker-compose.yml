@@ -11,4 +11,5 @@ services:
     volumes:
       - ./mockups/Caddyfile.mockups:/etc/caddy/Caddyfile:ro
       - ./mockups:/srv:ro
+      - ./.donotsubmit:/drafts:ro     # draft mockups, at http://localhost:8013/drafts/
     command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
