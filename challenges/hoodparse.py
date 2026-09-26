@@ -45,6 +45,8 @@ def parse(fn):
             'do': field(b, 'Do'), 'where': field(b, 'Where'),
             'time': (tm.group(1) if tm else tc).strip(), 'cost': (tm.group(2) if tm else '').strip(),
             'fail': field(b, 'Failable'), 'type': field(b, 'Type'), 'photo': field(b, 'Photo'),
+            # optional picture of the spot: a file in mockups/img/, plus who took it / its license
+            'img': field(b, 'Image'), 'img_credit': field(b, 'Image credit'),
         })
     trio_m = re.search(r'## Recommended trio\s*\n+\**([\d,\sand&]+)\**(.*)', text, re.S)
     trio = [int(x) for x in re.findall(r'\d+', trio_m.group(1))][:3]

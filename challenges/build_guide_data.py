@@ -17,9 +17,13 @@ def fail_kind(f):
 out = {}
 for h in all_hoods():
     out[name_by_clean[h['clean']]] = [
-        {'title': md(c['title']), 'do': md(c['do']), 'where': md(c['where']), 'time': c['time'], 'cost': c['cost'],
-         'fail': fail_kind(c['fail']), 'type': c['type'], 'photo': md(c['photo'])}
+        # published: type, time estimate and cost stay private (organizer-only, in challenges/*.md)
+        dict({'title': md(c['title']), 'do': md(c['do']), 'where': md(c['where']),
+              'fail': fail_kind(c['fail']), 'photo': md(c['photo'])},
+             **({'img': 'img/' + c['img'], 'credit': md(c['img_credit'])} if c['img'] else {}))
         for c in h['trio_cands']]
+for c in (c for v in out.values() for c in v if 'img' in c):
+    assert os.path.exists('../mockups/' + c['img']), 'missing image: mockups/' + c['img']
 
 assert len(out) == 41, len(out)
 json.dump(out, open('../mockups/challenges.json', 'w'), ensure_ascii=False, indent=0)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """rules.json is the single source of truth for the game rules. This script rewrites the
-rules block (between <!-- rules:start --> and <!-- rules:end -->) in guide.html and
-v2.html; build_brochure.py reads rules.json directly. Run after editing rules.json:
+rules block (between <!-- rules:start --> and <!-- rules:end -->) in guide.html; the game
+app links to the guide instead of repeating the rules. build_brochure.py reads rules.json directly. Run after editing rules.json:
     python3 mockups/sync_rules.py && python3 mockups/build_brochure.py
 """
 import json, os, re, html
@@ -22,7 +22,6 @@ def enc():
 
 BLOCKS = {
     'guide.html': lambda: f'    {intro("intro")}\n    <ul class="rules">\n{items("      ")}\n    </ul>\n    <p class="intro">{enc()}</p>',
-    'v2.html': lambda: f'  {intro("enc")}\n  <ol>\n{items("    ")}\n  </ol>\n  <p class="enc">{enc()}</p>',
 }
 for fn, block in BLOCKS.items():
     s = open(fn).read()

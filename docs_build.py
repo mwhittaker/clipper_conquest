@@ -117,6 +117,7 @@ def main():
     shutil.copyfile(os.path.join(MOCK, 'guide.html'), os.path.join(DOCS, 'index.html'))
     for fn in DATA_FILES:
         shutil.copyfile(os.path.join(MOCK, fn), os.path.join(DOCS, fn))
+    shutil.copytree(os.path.join(MOCK, 'img'), os.path.join(DOCS, 'img'))   # photos of challenge spots
     open(os.path.join(DOCS, '.nojekyll'), 'w').close()
 
     files = sorted(os.listdir(DOCS))

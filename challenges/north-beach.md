@@ -50,6 +50,8 @@ zones: piazza, hill, and pier.
 - **Failable:** no
 - **Type:** Go there
 - **Photo:** The team at the tower's fluted base, city and bay falling away behind.
+- **Image:** coit-tower.jpg
+- **Image credit:** Jon Sullivan, public domain (Wikimedia Commons)
 - **Why here:** Lillie Coit's 1933 tower is the neighborhood's exclamation point, and
   every way up Telegraph Hill earns it — this is the "the place is the game" entry.
 

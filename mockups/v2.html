@@ -89,17 +89,9 @@
   #view-toggle button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 
   /* ---------- list & timeline views ---------- */
-  #rules, #timeline { flex: 1; min-height: 0; overflow-y: auto; display: none; }
-  body.rulesview #rules { display: block; }
+  #timeline { flex: 1; min-height: 0; overflow-y: auto; display: none; }
   body.tlview #timeline { display: block; }
-  body.rulesview #map-wrap, body.tlview #map-wrap { display: none; }
-  #rules { padding: 18px 18px 28px; }
-  #rules h2 { font-size: 20px; margin: 0 0 12px; }
-  #rules ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; }
-  #rules li { font-size: 15px; line-height: 1.45; color: var(--muted); }
-  #rules li b { color: var(--ink); }
-  #rules .enc { font-size: 15px; line-height: 1.45; color: var(--muted); margin-top: 16px; }
-  #rules .enc b { color: var(--ink); }
+  body.chview #map-wrap, body.tlview #map-wrap { display: none; }
   .trow {
     display: flex; align-items: baseline; gap: 10px; width: 100%;
     padding: 12px 16px; border: none; border-bottom: 1px solid var(--line);
@@ -131,7 +123,13 @@
   #join.show { display: flex; }
   .join-card { width: 100%; max-width: 340px; }
   .join-card h1 { font-size: 26px; font-weight: 800; }
-  .join-sub { color: var(--muted); font-size: 15px; margin: 6px 0 26px; }
+  .join-sub { color: var(--muted); font-size: 15px; margin: 6px 0 18px; }
+  .join-guide { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; margin-bottom: 8px;
+    border: 1px solid var(--line); border-radius: 12px; color: var(--ink); text-decoration: none; }
+  .join-guide b { font-size: 16px; }
+  .join-guide b::after { content: ' ↗'; color: var(--muted); font-weight: 400; }
+  .join-guide span { font-size: 13.5px; color: var(--muted); }
+  .join-guide:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   .join-label { display: block; font-size: 13px; font-weight: 600; color: var(--muted);
     text-transform: uppercase; letter-spacing: .04em; margin: 18px 0 8px; }
   #join-name {
@@ -162,21 +160,10 @@
     text-decoration: underline; cursor: pointer; padding: 4px; margin-top: 22px;
   }
 
-  /* ---------- neighborhood detail (full screen) ---------- */
-  #detail {
-    position: fixed; inset: 0; background: var(--bg);
-    max-width: 560px; margin: 0 auto;
-    display: none; flex-direction: column; z-index: 10;
-  }
-  #detail.show { display: flex; }
+  /* ---------- challenges tab: one neighborhood's three challenges ---------- */
+  #detail { flex: 1; min-height: 0; display: none; flex-direction: column; }
+  body.chview #detail { display: flex; }
   #panel { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-  #panel.slide-left  { animation: fromRight .18s ease-out; }
-  #panel.slide-right { animation: fromLeft  .18s ease-out; }
-  @keyframes fromRight { from { transform: translateX(40px);  opacity: .3; } to { transform: none; opacity: 1; } }
-  @keyframes fromLeft  { from { transform: translateX(-40px); opacity: .3; } to { transform: none; opacity: 1; } }
-  @media (prefers-reduced-motion: reduce) {
-    #panel.slide-left, #panel.slide-right { animation: none; }
-  }
 
   .det-top {
     flex: none; display: flex; align-items: center; gap: 6px;
@@ -188,7 +175,7 @@
     width: 44px; height: 44px; flex: none;
   }
   .det-top button:focus-visible { outline: 2px solid var(--ink); }
-  #det-name { flex: 1; text-align: center; font-size: 18px; font-weight: 700; }
+  #det-name { flex: 1; font-size: 19px; font-weight: 800; padding-left: 10px; }
   #det-pos { font-size: 13px; color: var(--muted); padding: 0 10px; font-variant-numeric: tabular-nums; }
 
   .det-sub {
@@ -214,9 +201,28 @@
     display: flex; flex-direction: column;
     padding: 24px 24px 20px; overflow-y: auto;
   }
-  .slide .which { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
-  .slide h2 { font-size: 22px; font-weight: 700; text-wrap: balance; }
-  .slide .desc { margin-top: 8px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+  /* same look as the guide: faint number, title, retry rule, task, then labeled Where/Proof */
+  .slide .c-head { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+  .slide .c-num { font-size: 50px; font-weight: 800; line-height: .82; color: #E3E6E9; letter-spacing: -0.04em; }
+  .slide h2 { font-size: 21px; font-weight: 800; line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; }
+  .slide .c-fail { font-size: 13.5px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+  .slide .c-fail.oneshot { color: #A31F3B; }
+  .slide .c-fail.retry { color: #8A5A00; }
+  .slide .desc { margin-top: 12px; color: #33393F; font-size: 15.5px; line-height: 1.5; }
+  /* Where: set apart in a tinted box with a pin, same as the guide */
+  .slide .where { margin-top: 12px; display: grid; grid-template-columns: auto 1fr; gap: 9px; align-items: start;
+    background: #EEF1F4; border-radius: 12px; padding: 10px 12px; }
+  .slide .where .pin { width: 18px; height: 18px; margin-top: 1px; fill: none; stroke: #52606D; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .slide .where p { color: var(--ink); font-size: 14px; line-height: 1.45; font-weight: 500; }
+  .slide .where .w-img { flex: none; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 10px; overflow: hidden;
+    display: block; cursor: zoom-in; background: #DDE2E7; }
+  .slide .where .w-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slide .where .w-img.demo { display: grid; place-items: center; cursor: default;
+    background: linear-gradient(135deg, hsl(var(--h) 30% 86%), hsl(calc(var(--h) + 40) 36% 74%)); color: hsl(var(--h) 25% 38%); }
+  .slide .where .w-img.demo svg { width: 40%; height: 40%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .slide .where .w-img:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .slide .where small { display: block; font-size: 11.5px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+  .slide .where b { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 1px; }
   .slide .photo-act.center { width: 100%; text-align: center; margin-top: 10px; }
   .slide .who { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
   .slide .who .row { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--muted); }
@@ -266,26 +272,9 @@
   .slide button.undo.fogbtn  { color: var(--fog); }
   .slide button.undo.surfbtn { color: var(--surf); }
   .slide button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-  #dots {
-    flex: none; display: flex; justify-content: center; gap: 8px;
-    padding: 12px 0 18px;
-  }
+  #dots { flex: none; display: flex; justify-content: center; gap: 8px; padding: 12px 0 18px; }
   #dots .d { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
   #dots .d.on { background: var(--ink); }
-  .det-nav { flex: none; display: flex; gap: 10px; padding: 10px 16px 14px; border-top: 1px solid var(--line); }
-  .det-nav button {
-    flex: 1; min-width: 0; font: inherit; background: var(--open-fill);
-    border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer;
-    display: flex; flex-direction: column; gap: 2px;
-  }
-  #det-prev { align-items: flex-start; text-align: left; }
-  #det-next { align-items: flex-end; text-align: right; }
-  .det-nav .dir { font-size: 12px; color: var(--muted); }
-  .det-nav .nm {
-    font-size: 14px; font-weight: 600; color: var(--ink); max-width: 100%;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .det-nav button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -310,37 +299,27 @@
   <svg id="map" role="list" aria-label="San Francisco neighborhoods"></svg>
 </div>
 
-<div id="rules" aria-label="Rules">
-  <h2>How it works</h2>
-  <!-- rules:start -->
-  <p class="enc">Clipper Conquest is played by two teams that race to conquer as many SF neighborhoods as possible. Whichever team has more neighborhoods when the clock hits zero is the winner.</p>
-<p class="enc">Every one of San Francisco&#x27;s 41 neighborhoods has 3 unique challenges. You can conquer a neighborhood by completing its challenges. But be careful, because the other team can steal the neighborhood by completing more of the neighborhood&#x27;s challenges than you.</p>
-<p class="enc">If you only complete one challenge, you conquer the neighborhood quickly but are vulnerable to a steal. If you complete all three, the neighborhood is locked, but it might take a long time to complete all three challenges.</p>
-  <ol>
-    <li><b>Two teams, Red vs Blue,</b> 2–6 players each.</li>
-    <li><b>Stay together.</b> Split up only when a challenge explicitly says to.</li>
-    <li><b>Any team can attempt any challenge</b> at any time.</li>
-    <li><b>Ties go to whoever got there first.</b> On an equal count, the team whose completion was logged in the app first holds the neighborhood.</li>
-    <li><b>Photo proof with every completion.</b> Honor system. Log the completion as soon as you can; the photo can follow when it uploads.</li>
-    <li><b>One-shots:</b> a miss is a miss. Everything else takes persistence.</li>
-    <li><b>Some challenges may be impossible</b> on the day (something closed). Move on.</li>
-    <li><b>Muni only.</b> No BART, no Caltrain, no cars or bikes. No running unless a challenge says to — speedwalk.</li>
-    <li><b>No law-breaking.</b> Pay fares, cross on the signal, no trespassing.</li>
-    <li><b>No interfering</b> with the other team — no blocking, distracting or sabotaging their challenges.</li>
-    <li><b>Questions about a challenge?</b> Text the group chat.</li>
-    <li><b>When the clock hits zero,</b> a challenge still in progress counts as failed. Tied on neighborhoods? The team that first held that many wins.</li>
-    <li><b>Be kind and stay safe.</b></li>
-  </ol>
-  <p class="enc"><b>Encouraged, not required:</b> take lots of photos and videos, and share the spotlight — a different teammate for each challenge.</p>
-  <!-- rules:end -->
-</div>
 <div id="timeline" aria-label="Game timeline"></div>
+<section id="detail" aria-labelledby="det-name">
+  <div id="panel">
+    <div class="det-top">
+      <span id="det-name"></span>
+      <span id="det-pos"></span>
+    </div>
+    <div class="det-sub">
+      <svg id="minimap" aria-hidden="true"></svg>
+      <div id="det-status"></div>
+    </div>
+    <div id="chal-track" aria-label="Challenges, swipe to browse"></div>
+    <div id="dots" aria-hidden="true"></div>
+  </div>
+</section>
 
 <footer>
   <div id="view-toggle" role="group" aria-label="View">
     <button id="view-map" aria-pressed="true">Map</button>
+    <button id="view-challenges" aria-pressed="false">Challenges</button>
     <button id="view-timeline" aria-pressed="false">Timeline</button>
-    <button id="view-rules" aria-pressed="false">Rules</button>
   </div>
   <button id="me" aria-label="Join the game">?</button>
 </footer>
@@ -349,6 +328,8 @@
   <div class="join-card">
     <h1 id="join-title">Clipper Conquest</h1>
     <p class="join-sub">Two teams, one afternoon, all of San Francisco.</p>
+    <a class="join-guide" href="https://mwhittaker.github.io/clipper_conquest/" target="_blank" rel="noopener">
+      <b>Read the guide</b><span>Rules, the rules video, the map and every challenge</span></a>
     <label class="join-label" for="join-name">Your name</label>
     <input id="join-name" type="text" autocomplete="off" maxlength="24" placeholder="e.g. Maya">
     <p class="join-label">Your team</p>
@@ -371,25 +352,6 @@
   <button id="lightbox-close" aria-label="Close photo">✕</button>
 </div>
 
-<div id="detail" role="dialog" aria-modal="true" aria-labelledby="det-name">
-  <div id="panel">
-    <div class="det-top">
-      <button id="det-back" aria-label="Close">✕</button>
-      <span id="det-name"></span>
-      <span id="det-pos"></span>
-    </div>
-    <div class="det-sub">
-      <svg id="minimap" aria-hidden="true"></svg>
-      <div id="det-status"></div>
-    </div>
-    <div id="chal-track" aria-label="Challenges, swipe to browse"></div>
-    <div id="dots" aria-hidden="true"></div>
-  </div>
-  <div class="det-nav">
-    <button id="det-prev"><span class="dir">‹ Previous</span><span class="nm"></span></button>
-    <button id="det-next"><span class="dir">Next ›</span><span class="nm"></span></button>
-  </div>
-</div>
 
 <script>
 const CH_PER_HOOD = 3;
@@ -412,52 +374,31 @@ function T(str) {
 function fmt(t) {
   return new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
-// Placeholder challenges until the real list lands — picked deterministically
-// per neighborhood so the same challenge always shows the same text.
-const FAKE_TITLES = [
-  'Take a team photo with the oldest storefront you can find',
-  'Order the weirdest thing on the menu and finish it',
-  'Find a mural and recreate the pose',
-  'Get a stranger to teach you a local fact',
-  'Climb to the highest public point in the neighborhood',
-  'Find a plaque and read it aloud to a teammate',
-  'Buy something under $5 from a corner store',
-  'Find a street named after a person and learn who they were',
-  'Spot a dog in a stroller or other neighborhood celebrity',
-  'Take a photo mimicking a statue or sculpture',
-  'Find the best view and take a team panorama',
-  'Get a barista to draw your team logo in latte art',
-  'Find a community garden and name three plants in it',
-  'Ride one form of public transit at least one stop',
-  'Trade something for a book at a little free library',
-  'High-five someone wearing your team’s color',
-  'Find the neighborhood’s oldest bar or cafe and toast',
-  'Photograph a house painted in your team’s color',
-  'Find a street performer and tip them',
-  'Pose under the neighborhood sign or gateway',
-];
-const FAKE_DESCS = [
-  'Everyone on the team must appear in the photo.',
-  'Any storefront counts as long as the name is visible in your photo. If the owner asks what you are doing, you must explain the game with a straight face.',
-  'Walk the full block before you choose. The photo must include at least two teammates, the item in question, and something that proves which neighborhood you are in — a street sign works, a receipt works, a recognizable landmark works. If a local offers to help, you must accept the help and include them in the photo. No take-backs once you tap complete.',
-  'If the neighborhood makes this impossible, improvise: find the closest equivalent and document your reasoning in the photo itself. Judges (there are no judges) will be lenient.',
-  'One attempt per team. If both teams attempt this at the same location at the same time, the first to press the button wins the tiebreak, so walk fast but do not run.',
-  'The photo must clearly show where you are.',
-  'This one has rules: no phones may appear in the shot, at least one team member must be airborne, and the background must contain something older than the Golden Gate Bridge. Interpret that however you like — the honor system is doing a lot of work here, and the other team will absolutely zoom in on your photo after the game to check.',
-  'Ask first. Tip well. Photograph the result from close enough that nobody could mistake it for a stock image.',
-];
-function hashStr(s) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
+// The real challenges (mockups/challenges.json, built from challenges/*.md), keyed by
+// neighborhood name. Fields are HTML-escaped by the builder.
+let CHALLENGES = {};
+const MISSING = { title: 'Challenges didn’t load', do: 'Reload the page to try again.', where: '', photo: '', fail: null };
+// The Where box: a photo of the spot when the challenge has one (tap to enlarge), else a pin.
+// Open the page with ?demo-photos to fill in placeholder tiles where photos are still missing.
+const DEMO_PHOTOS = new URLSearchParams(location.search).has('demo-photos');
+const PIN_SVG = '<svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>';
+const IMG_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>';
+function hueOf(s) { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 360; }
+function whereBox(c, cls, onOpen) {
+  const box = document.createElement('div');
+  box.className = cls;
+  const lead = c.img ? '<button class="w-img" aria-label="Enlarge the photo of this spot"><img alt=""></button>'
+    : DEMO_PHOTOS ? `<span class="w-img demo" style="--h:${hueOf(c.where)}">${IMG_SVG}</span>` : PIN_SVG;
+  box.innerHTML = lead + `<p><b>Where</b>${c.where}${c.credit ? `<small>Photo: ${c.credit}</small>` : ''}</p>`;
+  if (c.img) {
+    box.querySelector('img').src = c.img;
+    const place = document.createElement('p'); place.innerHTML = c.where;
+    box.querySelector('button').onclick = () => onOpen(c.img, place.textContent);
+  }
+  return box;
 }
-function fakeChallenge(name, ci) {
-  const h = hashStr(name);
-  return {
-    title: FAKE_TITLES[(h + ci * 7) % FAKE_TITLES.length],
-    desc: FAKE_DESCS[(h + ci) % FAKE_DESCS.length],
-  };
-}
+const FAIL_TEXT = { 'one-shot': ['oneshot', 'One shot'], retryable: ['retry', 'Retryable'], '': ['', 'Can’t fail'] };
+function challengeFor(name, ci) { return (CHALLENGES[name] || [])[ci] || MISSING; }
 
 const SEED = {
   'Marina':                        [['1:12 PM', null], ['1:31 PM', null], ['1:58 PM', null]],
@@ -927,18 +868,15 @@ function paint() {
 
 /* ---------- detail view ---------- */
 function showDetail(i, slideIdx = 0) {
-  const wasOpen = document.getElementById('detail').classList.contains('show');
+  const wasOpen = document.body.classList.contains('chview');
   current = (i + hoods.length) % hoods.length;
   const name = hoods[current].name;
+  try { localStorage.setItem('cc2-hood', name); } catch (e) {}
   const rows = state[name];
   const [f, s] = counts(name);
 
   document.getElementById('det-name').textContent = name;
   document.getElementById('det-pos').textContent = `${current + 1}/${hoods.length}`;
-  document.querySelector('#det-prev .nm').textContent =
-    hoods[(current + hoods.length - 1) % hoods.length].name;
-  document.querySelector('#det-next .nm').textContent =
-    hoods[(current + 1) % hoods.length].name;
 
   const status = document.getElementById('det-status');
   const holderTeam = hoodClass(name);   // 'open' | 'fog' | 'surf'
@@ -974,16 +912,17 @@ function showDetail(i, slideIdx = 0) {
     const slide = document.createElement('div');
     slide.className = 'slide';
 
+    const c = challengeFor(name, ci);
+    const [fcls, ftxt] = FAIL_TEXT[c.fail] || [];
     const which = document.createElement('div');
-    which.className = 'which';
-    which.textContent = `Challenge ${ci + 1} of ${CH_PER_HOOD}`;
-
-    const fake = fakeChallenge(name, ci);
-    const h2 = document.createElement('h2');
-    h2.textContent = fake.title;
+    which.className = 'c-head';
+    which.innerHTML = `<span class="c-num" aria-hidden="true">${ci + 1}</span><div><h2></h2>` +
+      (ftxt ? `<p class="c-fail ${fcls}">${ftxt}</p>` : '') + '</div>';
+    which.querySelector('h2').innerHTML = c.title;
     const desc = document.createElement('p');
     desc.className = 'desc';
-    desc.textContent = fake.desc;
+    desc.innerHTML = c.do;
+    const metas = c.where ? [whereBox(c, 'where', openLightbox)] : [];
 
     const who = document.createElement('div');
     who.className = 'who';
@@ -1050,7 +989,7 @@ function showDetail(i, slideIdx = 0) {
       btn.onclick = () => { photoTarget = { name, ci, complete: true }; photoIn.click(); };
     }
 
-    slide.append(which, h2, desc, who);
+    slide.append(which, ...metas, desc, who);   // where first: it's what you need on the move
     if (proofs.children.length) slide.appendChild(proofs);
     if (row[yi]) {
       const pa = document.createElement('button');
@@ -1076,10 +1015,10 @@ function showDetail(i, slideIdx = 0) {
   });
 
   paintMini();
-  document.getElementById('detail').classList.add('show');
-  // Keep the browser's back button meaningful: opening the detail view pushes
-  // one history entry (so back = close); switching neighborhoods while open
-  // replaces it (so back still goes straight to the map).
+  if (!wasOpen) setView('challenges');
+  // Keep the browser's back button meaningful: arriving on the Challenges tab pushes
+  // one history entry (so back = the view you came from); switching neighborhoods
+  // there replaces it (so back still goes straight out).
   if (!navFromHistory) {
     const hash = '#' + encodeURIComponent(name);
     if (!wasOpen) history.pushState({ cc: 1 }, '', hash);
@@ -1106,32 +1045,13 @@ function afterChange(slideIdx) {
 
 let navFromHistory = false;
 
-function closeDetail() {
-  document.getElementById('detail').classList.remove('show');
-  current = -1;
-  paintMini();
-}
-
-document.getElementById('det-prev').onclick = () => showDetail(current - 1);
-document.getElementById('det-next').onclick = () => showDetail(current + 1);
-
-document.getElementById('det-back').onclick = () => {
-  if (history.state && history.state.cc) {
-    history.back();   // popstate handler does the closing
-  } else {
-    // Arrived directly on a #neighborhood URL: nothing of ours to pop.
-    closeDetail();
-    history.replaceState(null, '', location.pathname);
-  }
-};
-
 window.addEventListener('popstate', e => {
   if (e.state && e.state.cc) {
     const name = decodeURIComponent(location.hash.slice(1));
     const i = hoods.findIndex(h => h.name === name);
     if (i >= 0) { navFromHistory = true; showDetail(i); navFromHistory = false; }
-  } else if (current >= 0) {
-    closeDetail();
+  } else if (document.body.classList.contains('chview')) {
+    setView('map');
   }
 });
 
@@ -1152,11 +1072,11 @@ document.addEventListener('keydown', e => {
     closeLightbox();
     return;
   }
-  if (current < 0) return;
+  if (!document.body.classList.contains('chview')) return;
   const track = document.getElementById('chal-track');
   if (e.key === 'ArrowLeft') track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
   if (e.key === 'ArrowRight') track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
-  if (e.key === 'Escape') document.getElementById('det-back').click();
+  if (e.key === 'Escape') setView('map');
 });
 
 /* ---------- timeline view ---------- */
@@ -1229,15 +1149,21 @@ function renderTimeline() {
 }
 
 function setView(v) {
-  if (!['map', 'rules', 'timeline'].includes(v)) v = 'map';
-  document.body.classList.toggle('rulesview', v === 'rules');
+  if (!['map', 'challenges', 'timeline'].includes(v)) v = 'map';
+  // The Challenges tab always shows a neighborhood: the last one looked at, else the first.
+  if (v === 'challenges' && current < 0) {
+    let last = null; try { last = localStorage.getItem('cc2-hood'); } catch (e) {}
+    showDetail(Math.max(0, hoods.findIndex(h => h.name === last)));
+    return;
+  }
+  document.body.classList.toggle('chview', v === 'challenges');
   document.body.classList.toggle('tlview', v === 'timeline');
-  ['map', 'rules', 'timeline'].forEach(k =>
+  ['map', 'challenges', 'timeline'].forEach(k =>
     document.getElementById('view-' + k).setAttribute('aria-pressed', String(v === k)));
   try { localStorage.setItem('cc2-view', v); } catch (e) {}
 }
 document.getElementById('view-map').onclick = () => setView('map');
-document.getElementById('view-rules').onclick = () => setView('rules');
+document.getElementById('view-challenges').onclick = () => setView('challenges');
 document.getElementById('view-timeline').onclick = () => setView('timeline');
 
 /* ---------- clock ---------- */
@@ -1301,18 +1227,18 @@ function paintMe() {
   me.title = `${profile.name} · Team ${TEAM_NAME[profile.team]}`;
 }
 document.getElementById('join-reset').onclick = () => {
-  try { ['cc2-state2', 'cc2-photos', 'cc2-end', 'cc2-profile', 'cc2-view'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  try { ['cc2-state2', 'cc2-photos', 'cc2-end', 'cc2-profile', 'cc2-view', 'cc2-hood'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
   location.reload();
 };
 
 /* ---------- boot ---------- */
-fetch('sf_neighborhoods.geojson')
-  .then(r => r.json())
-  .then(geo => {
+Promise.all([
+  fetch('sf_neighborhoods.geojson').then(r => r.json()),
+  fetch('challenges.json?v=' + Date.now()).then(r => r.json()).catch(err => { console.error('challenges.json', err); return {}; }),
+]).then(([geo, chal]) => {
+    CHALLENGES = chal;
     buildMap(geo);
     loadPhotos();
-    let saved = null; try { saved = localStorage.getItem('cc2-view'); } catch (e) {}
-    setView(saved || 'map');
     state = loadState() || {};
     hoods.forEach(h => {
       if (!state[h.name]) {
@@ -1323,6 +1249,8 @@ fetch('sf_neighborhoods.geojson')
     });
     saveState();
     paint();
+    let saved = null; try { saved = localStorage.getItem('cc2-view'); } catch (e) {}
+    setView(saved || 'map');
     if (profile) paintMe();
     else openJoin();
     // A shared or refreshed #neighborhood URL opens that neighborhood directly.

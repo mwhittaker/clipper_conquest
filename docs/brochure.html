@@ -2,10 +2,11 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clipper Conquest — brochure</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
 <style>
   * { box-sizing: border-box; margin: 0; }
   :root { --fog: #C42847; --surf: #1D6FB8; --ink: #1C1E21; --muted: #6A7076; --line: #D9DDE1; }
-  body { font-family: system-ui, sans-serif; color: var(--ink); background: #EEF0F2; }
+  body { font-family: Inter, system-ui, sans-serif; color: var(--ink); background: #EEF0F2; }
 
   .screen-note { max-width: 900px; margin: 24px auto 0; padding: 0 16px; }
   .screen-note h1 { font-size: 22px; }
@@ -43,9 +44,9 @@
   .teamline b { color: var(--ink); }
 
   .rules h2, .muni h2 { font-size: 16px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .12in; }
-  .rules p { font-size: 10.5px; line-height: 1.45; color: var(--muted); margin-bottom: .1in; }
-  .rules ol { padding-left: .18in; font-size: 10.5px; line-height: 1.45; }
-  .rules li { margin-bottom: .07in; }
+  .rules p { font-size: var(--rs, 10.5px); line-height: 1.38; color: var(--muted); margin-bottom: .08in; }
+  .rules ol { padding-left: .18in; font-size: var(--rs, 10.5px); line-height: 1.38; }
+  .rules li { margin-bottom: .045in; }
 
   .muni h3 { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: .14in 0 .05in; }
   .line { display: flex; align-items: center; gap: 5px; font-size: 10px; margin: 2.5px 0; }
@@ -197,4 +198,14 @@
 </div>
 </div>
 
+<script>
+// system fonts differ between machines; if the rules still overflow their panel (say the web font
+// failed to load), step the rules text down until everything fits. The guide waits on this before printing.
+window.fitted = document.fonts.ready.then(() => {
+  const el = document.querySelector('.panel.rules');
+  const over = () => { const lim = el.getBoundingClientRect().bottom - parseFloat(getComputedStyle(el).paddingBottom);
+    return [...el.children].some(c => c.getBoundingClientRect().bottom > lim + 0.5); };
+  for (let s = 10.5; s > 7.5 && over(); s -= .25) el.style.setProperty('--rs', (s - .25) + 'px');
+});
+</script>
 </body></html>

@@ -58,11 +58,12 @@ The prototype keeps all game state in each phone's browser `localStorage`:
 | `cc2-state2` | Completion timestamps per neighborhood, challenge and team |
 | `cc2-photos` | Photo proof as downscaled JPEG data URLs |
 | `cc2-end` | The game's end time (the countdown) |
-| `cc2-view` | The last view shown (map, rules or timeline) |
+| `cc2-view` | The last view shown (map, challenges or timeline) |
+| `cc2-hood` | The neighborhood last shown on the Challenges tab |
 
 State is not shared between players: each phone has its own copy. It survives a page
 reload or a browser or app crash on the same phone, and it is lost if the browser's
-site storage is cleared. The "Reset demo data" button on the join screen deletes all five keys. A
+site storage is cleared. The "Reset demo data" button on the join screen deletes all six keys. A
 real game needs a shared backend, which isn't built yet.
 
 ### Planned game server (not built yet)
@@ -82,12 +83,19 @@ server:
 
 ## Rebuilding the generated pieces
 
+A challenge can show a photo of its spot in the guide and the game app. Put the image in
+`mockups/img/` (about 960px wide) and add two lines to the challenge in `challenges/*.md`:
+`- **Image:** coit-tower.jpg` and `- **Image credit:** who took it, and its license`. Use
+only your own photos or openly licensed ones (for example public domain or Creative Commons
+from Wikimedia Commons), since the site is public. Open the guide or the app with
+`?demo-photos` to see placeholder tiles for the challenges that don't have a photo yet.
+
 All scripts can be run from any directory.
 
 | Command | When to run it | What it writes |
 | --- | --- | --- |
-| `python3 challenges/build_guide_data.py` | After editing any `challenges/*.md` | `mockups/challenges.json` (the recommended trios, read by the guide) |
-| `python3 mockups/sync_rules.py` | After editing `mockups/rules.json` | The rules blocks in `mockups/guide.html` and `mockups/v2.html` |
+| `python3 challenges/build_guide_data.py` | After editing any `challenges/*.md` | `mockups/challenges.json` (the recommended trios, read by the guide and the game app; type, time and cost stay out of it) |
+| `python3 mockups/sync_rules.py` | After editing `mockups/rules.json` | The rules block in `mockups/guide.html` (the game app links to the guide instead) |
 | `python3 mockups/build_brochure.py` | After a challenge or rules change | `mockups/brochure.html` (the local copy, with the QR code from `mockups/qr_codes.json`) |
 | `python3 challenges/build_artifact.py` | When the challenge review page needs refreshing | `challenges/review_artifact.html` (the claude.ai review artifact, which must be republished separately) |
 | `python3 docs_build.py https://USERNAME.github.io/clipper_conquest/` | Before publishing | Runs the first three scripts, generates a QR code for the public URL (`mockups/qr_codes.public.json`) and rebuilds `docs/`. See [PUBLISHING.md](PUBLISHING.md). |

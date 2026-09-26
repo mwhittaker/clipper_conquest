@@ -27,9 +27,9 @@
   :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
   /* ---------- masthead ---------- */
-  .masthead { padding: 52px 0 0; }
+  .masthead { padding: 72px 0 12px; text-align: center; }
   .masthead h1 {
-    font-size: clamp(38px, 5vw, 58px); font-weight: 800;
+    font-size: clamp(46px, 9vw, 112px); font-weight: 800;
     letter-spacing: -0.02em; line-height: 1.05;
   }
   .masthead h1 .red { color: var(--fog); }
@@ -41,7 +41,7 @@
   .brandbar i { flex: 1; }
   .brandbar .r { background: var(--fog); }
   .brandbar .b { background: var(--surf); }
-  .tagline { margin-top: 14px; font-size: 19px; color: var(--muted); max-width: 620px; text-wrap: balance; }
+  .tagline { margin: 16px auto 0; font-size: clamp(19px, 2vw, 24px); color: var(--muted); max-width: 620px; text-wrap: balance; }
 
   /* ---------- rules ---------- */
   .rules-sec { padding: 44px 0 8px; }
@@ -139,7 +139,7 @@
   }
   .map-hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
 
-  /* ---------- side panel: challenge card carousel ---------- */
+  /* ---------- side panel: the selected neighborhood's challenges ---------- */
   .panel {
     min-width: 0;
     border: 1px solid var(--line); border-radius: 12px; padding: 26px;
@@ -149,46 +149,40 @@
   .panel .ph b { color: var(--ink); }
   .panel .pnum { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
   .panel h3 { font-size: 32px; font-weight: 800; letter-spacing: -0.01em; margin: 2px 0 18px; line-height: 1.15; }
-  .card {
-    flex: 1; min-height: 0; overflow-y: auto;
-    background: #F6F7F8; border: 1px solid var(--line); border-radius: 14px;
-    padding: 26px 26px 22px;
-  }
-  .card { display: grid; }
-  .card .slide { grid-area: 1 / 1; visibility: hidden; overflow-wrap: anywhere; }
-  .card .slide.on { visibility: visible; }
-  .card .cwhich { font-size: 13.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-  .card .ctitle { font-size: 28px; font-weight: 700; line-height: 1.25; margin: 8px 0 14px; text-wrap: balance; }
-  .card .cdesc { font-size: 18.5px; line-height: 1.6; color: #3A4148; }
-  .card .cwhich .tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px;
-    border: 1px solid var(--line); background: #fff; letter-spacing: 0; text-transform: none; font-size: 13px; }
-  .card .cwhich .tag.oneshot { background: #F9E4E8; color: #A31F3B; border-color: transparent; }
-  .card .cwhich .tag.retry { background: #FDF2DC; color: #8A5A00; border-color: transparent; }
-  .card .cmeta { font-size: 15.5px; line-height: 1.5; color: var(--muted); margin: 14px 0 0; }
-  .card .cmeta + .cmeta { margin-top: 6px; }
-  .card .cmeta b { color: var(--ink); font-weight: 600; }
-  .cnav { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
-  .cnav button {
-    width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line);
-    background: #fff; color: var(--ink); font-size: 20px; cursor: pointer;
-  }
-  .cnav button:hover { border-color: var(--muted); }
-  .cnav .dots { flex: 1; display: flex; justify-content: center; gap: 9px; }
-  .cnav .dots button { width: 10px; height: 10px; border-radius: 50%; background: var(--line); border: none; padding: 0; }
-  .cnav .dots button.on { background: var(--ink); }
-  .ckeys { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 8px; }
-  .hnav { display: flex; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
-  .hnav button {
-    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
-    background: var(--open-fill); border: none; border-radius: 10px;
-    padding: 11px 14px; cursor: pointer; color: var(--ink);
-  }
-  .hnav button:hover { background: #DCE0E3; }
-  .hnav .prev { align-items: flex-start; text-align: left; }
-  .hnav .next { align-items: flex-end; text-align: right; }
-  .hnav .dir { font-size: 12px; color: var(--muted); }
-  .hnav .nm { font-size: 15px; font-weight: 600; max-width: 100%;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* numbered buttons flip the three challenges */
+  .cnums { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+  .cnums button { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--line); background: #fff;
+    font-weight: 700; font-size: 15px; cursor: pointer; color: var(--muted); padding: 0; }
+  .cnums button:hover { border-color: var(--muted); }
+  .cnums button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .cnums .ckeys { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+  /* All three slides share one grid cell. On desktop the box fills the panel and each slide
+     scales its own text (--k) until it fits, so nothing scrolls. */
+  .cbox { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); }
+  .cbox .slide { --k: 1; --p: 1; grid-area: 1 / 1; min-height: 0; overflow: hidden; visibility: hidden;
+    display: flex; flex-direction: column; gap: calc(var(--k) * 16px); overflow-wrap: anywhere; }
+  .cbox .slide.on { visibility: visible; }
+  .c-head { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: start; }
+  .c-num { font-size: calc(var(--k) * 72px); font-weight: 800; line-height: .82; color: #E3E6E9; letter-spacing: -0.04em; }
+  .c-title { font-size: calc(var(--k) * 28px); font-weight: 800; line-height: 1.18; letter-spacing: -0.01em; text-wrap: balance; }
+  .c-fail { font-size: 14px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+  .c-fail.oneshot { color: #A31F3B; }
+  .c-fail.retry { color: #8A5A00; }
+  .c-do { font-size: calc(var(--k) * 18px); line-height: 1.55; color: #33393F; }
+  /* Where: the practical bit you need on the move, set apart in a tinted box with a pin */
+  .c-where { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start;
+    background: #EEF1F4; border-radius: 12px; padding: calc(var(--k) * 12px) 14px; }
+  .c-where .pin { width: 20px; height: 20px; margin-top: 1px; fill: none; stroke: #52606D; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .c-where p { font-size: calc(var(--k) * 15.5px); line-height: 1.45; color: var(--ink); font-weight: 500; }
+  .c-where .w-img { flex: none; width: calc(var(--p) * 96px); height: calc(var(--p) * 96px); padding: 0; border: 0; border-radius: 10px; overflow: hidden;
+    display: block; cursor: zoom-in; background: #DDE2E7; }
+  .c-where .w-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .c-where .w-img.demo { display: grid; place-items: center; cursor: default;
+    background: linear-gradient(135deg, hsl(var(--h) 30% 86%), hsl(calc(var(--h) + 40) 36% 74%)); color: hsl(var(--h) 25% 38%); }
+  .c-where .w-img.demo svg { width: 40%; height: 40%; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .c-where .w-img:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .c-where small { display: block; font-size: 11.5px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+  .c-where b { display: block; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
 
   /* ---------- print button ---------- */
   .print-sec { padding: 12px 0 60px; }
@@ -215,12 +209,13 @@
     /* Stacked under the map: let the panel grow to fit the card instead of squeezing it. */
     .panel { padding: 18px; }
     .panel h3 { font-size: 23px; margin-bottom: 12px; }
-    .card { flex: none; overflow: visible; min-height: 200px; padding: 18px; }
-    .card .ctitle { font-size: 20px; }
-    .card .cdesc { font-size: 15.5px; }
-    .card .cmeta { font-size: 13.5px; }
+    .cbox { flex: none; grid-template-rows: auto; }
+    .c-num { font-size: 56px; }
+    .c-title { font-size: 22px; }
+    .c-do { font-size: 16px; }
+    .c-where p { font-size: 14.5px; }
+    .c-where .w-img { width: 84px; height: 84px; }
     .ckeys { display: none; }            /* no arrow keys on phones */
-    .hnav .nm { font-size: 14px; }
   }
 
 </style>
@@ -300,41 +295,45 @@
 </main>
 
 
-<!-- ======== print-only one-page challenge sheet ======== -->
-
 
 <script>
 let CHALLENGES = {};   // official hood name -> [3 challenges], from challenges.json
-const MISSING = { title: 'Challenges didn’t load', do: 'Reload the page to try again.', where: '', time: '', cost: '', fail: '', type: '', photo: '' };
+const MISSING = { title: 'Challenges didn’t load', do: 'Reload the page to try again.', where: '', fail: null, photo: '' };
 function challengeFor(name, ci) {
   return (CHALLENGES[name] && CHALLENGES[name][ci]) || MISSING;
 }
-// Build one card slide. Text fields arrive as pre-escaped HTML from build_guide_data.py.
+// Build one challenge slide: a big faint number, the title, whether a miss can be retried,
+// where to go, then the task (same order as the game app). Text fields arrive as pre-escaped HTML from
+// build_guide_data.py.
+// The Where box: a photo of the spot when the challenge has one (tap to enlarge), else a pin.
+// Open the page with ?demo-photos to fill in placeholder tiles where photos are still missing.
+const DEMO_PHOTOS = new URLSearchParams(location.search).has('demo-photos');
+const PIN_SVG = '<svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>';
+const IMG_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M4 17l5-5 4 4 3-3 4 4"/></svg>';
+function hueOf(s) { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 360; }
+function whereBox(c, cls, onOpen) {
+  const box = document.createElement('div');
+  box.className = cls;
+  const lead = c.img ? '<button class="w-img" aria-label="Enlarge the photo of this spot"><img alt=""></button>'
+    : DEMO_PHOTOS ? `<span class="w-img demo" style="--h:${hueOf(c.where)}">${IMG_SVG}</span>` : PIN_SVG;
+  box.innerHTML = lead + `<p><b>Where</b>${c.where}${c.credit ? `<small>Photo: ${c.credit}</small>` : ''}</p>`;
+  if (c.img) {
+    box.querySelector('img').src = c.img;
+    const place = document.createElement('p'); place.innerHTML = c.where;
+    box.querySelector('button').onclick = () => onOpen(c.img, place.textContent);
+  }
+  return box;
+}
+const FAIL_TEXT = { 'one-shot': ['oneshot', 'One shot'], retryable: ['retry', 'Retryable'], '': ['', 'Can’t fail'] };
 function buildSlide(c, ci) {
-  const sl = document.createElement('div');
+  const sl = document.createElement('article');
   sl.className = 'slide';
-  const w = document.createElement('p');
-  w.className = 'cwhich';
-  w.textContent = `Challenge ${ci + 1} of 3`;
-  if (c.type) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = c.type; w.appendChild(t); }
-  if (c.fail) { const f = document.createElement('span'); f.className = 'tag ' + (c.fail === 'one-shot' ? 'oneshot' : 'retry'); f.textContent = c.fail; w.appendChild(f); }
-  const t = document.createElement('p');
-  t.className = 'ctitle';
-  t.innerHTML = c.title;
-  const dsc = document.createElement('p');
-  dsc.className = 'cdesc';
-  dsc.innerHTML = c.do;
-  sl.append(w, t, dsc);
-  const meta = (label, val) => {
-    if (!val) return;
-    const m = document.createElement('p');
-    m.className = 'cmeta';
-    m.innerHTML = `<b>${label}</b> ${val}`;
-    sl.appendChild(m);
-  };
-  meta('Where:', c.where);
-  meta('Time:', [c.time, c.cost].filter(Boolean).join(' · '));
-  meta('Photo:', c.photo);
+  const [fcls, ftxt] = FAIL_TEXT[c.fail] || [];
+  sl.innerHTML =
+    `<div class="c-head"><span class="c-num" aria-hidden="true">${ci + 1}</span><div>` +
+      `<h4 class="c-title">${c.title}</h4>${ftxt ? `<p class="c-fail ${fcls}">${ftxt}</p>` : ''}</div></div>` +
+    `<p class="c-do">${c.do}</p>`;
+  if (c.where) sl.insertBefore(whereBox(c, 'c-where', src => window.open(src, '_blank', 'noopener')), sl.querySelector('.c-do'));
   return sl;
 }
 
@@ -815,99 +814,65 @@ function selectHood(i, ci = 0) {
   pnum.textContent = `Neighborhood ${h.num} of ${hoods.length}`;
   const h3 = document.createElement('h3');
   h3.textContent = h.name;
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.setAttribute('aria-live', 'polite');
-  const nav = document.createElement('div');
-  nav.className = 'cnav';
-  const prev = document.createElement('button');
-  prev.textContent = '‹';
-  prev.setAttribute('aria-label', 'Previous challenge');
-  const next = document.createElement('button');
-  next.textContent = '›';
-  next.setAttribute('aria-label', 'Next challenge');
-  const dots = document.createElement('div');
-  dots.className = 'dots';
-  const dotEls = [0, 1, 2].map(k => {
-    const d = document.createElement('button');
-    d.setAttribute('aria-label', `Challenge ${k + 1}`);
-    d.onclick = () => showCard(k);
-    dots.appendChild(d);
-    return d;
-  });
-  nav.append(prev, dots, next);
-  const keys = document.createElement('p');
-  keys.className = 'ckeys';
-  keys.textContent = '← → arrow keys flip challenges';
-  const hnav = document.createElement('div');
-  hnav.className = 'hnav';
-  [['prev', -1, '‹ Previous neighborhood'], ['next', 1, 'Next neighborhood ›']].forEach(([cls, dir, label]) => {
-    const j = (i + dir + hoods.length) % hoods.length;
+  const nums = document.createElement('div');
+  nums.className = 'cnums';
+  const numBtns = [0, 1, 2].map(k => {
     const b = document.createElement('button');
-    b.className = cls;
-    b.innerHTML = '<span class="dir"></span><span class="nm"></span>';
-    b.querySelector('.dir').textContent = label;
-    b.querySelector('.nm').textContent = `${hoods[j].num}. ${hoods[j].name}`;
-    b.onclick = () => selectHood(j);
-    hnav.appendChild(b);
+    b.textContent = k + 1;
+    b.setAttribute('aria-label', `Challenge ${k + 1}`);
+    b.onclick = () => showCard(k);
+    nums.appendChild(b);
+    return b;
   });
-  panel.append(pnum, h3, card, nav, keys, hnav);
-
-  // Build all three slides stacked in one grid cell, so the card is always as
-  // tall as its longest challenge and never jumps while flipping.
-  const slides = [0, 1, 2].map(ci => {
-    const sl = buildSlide(challengeFor(h.name, ci), ci);
-    card.appendChild(sl);
-    return sl;
-  });
-  sizeCard(card);
+  const keys = document.createElement('span');
+  keys.className = 'ckeys';
+  keys.textContent = '← → to flip';
+  nums.appendChild(keys);
+  const box = document.createElement('div');
+  box.className = 'cbox';
+  box.setAttribute('aria-live', 'polite');
+  const slides = [0, 1, 2].map(k => box.appendChild(buildSlide(challengeFor(h.name, k), k)));
+  panel.append(pnum, h3, nums, box);
+  fitSlides(slides);
   showCard = k => {
     cardIdx = (k + 3) % 3;
     slides.forEach((sl, j) => sl.classList.toggle('on', j === cardIdx));
-    card.scrollTop = 0;
-    dotEls.forEach((d, j) => d.classList.toggle('on', j === cardIdx));
+    numBtns.forEach((b, j) => b.classList.toggle('on', j === cardIdx));
   };
-  prev.onclick = () => showCard(cardIdx - 1);
-  next.onclick = () => showCard(cardIdx + 1);
   showCard(ci);
 }
 
-// One card height for every challenge in every neighborhood: measure the
-// tallest of all 123 at the card's current width (cached per width).
-const cardHeightByWidth = new Map();
-function sizeCard(card) {
-  if (getComputedStyle(card).flexGrow !== '0') { card.style.minHeight = ''; return; } // desktop: panel fixes it
-  const w = card.clientWidth;
-  if (!cardHeightByWidth.has(w)) {
-    const probe = card.cloneNode(false);
-    probe.style.cssText = `position:absolute;visibility:hidden;left:-9999px;width:${card.offsetWidth}px;min-height:0`;
-    hoods.forEach(h => [0, 1, 2].forEach(ci => probe.appendChild(buildSlide(challengeFor(h.name, ci), ci))));
-    card.parentNode.appendChild(probe);
-    cardHeightByWidth.set(w, probe.offsetHeight);
-    probe.remove();
-  }
-  card.style.minHeight = cardHeightByWidth.get(w) + 'px';
+// Desktop: the panel has a fixed height, so shrink each long challenge's photo, then text, until it fits
+// (short ones keep full size). Phones: the panel grows with its content, so leave text alone.
+function fitSlides(slides) {
+  const desktop = matchMedia('(min-width: 901px)').matches;
+  slides.forEach(sl => {
+    sl.style.setProperty('--k', 1); sl.style.setProperty('--p', 1);
+    if (!desktop) return;
+    // the photo gives way first (down to 60%), then the text
+    for (let p = 1; p > 0.6 && sl.scrollHeight > sl.clientHeight + 1; p -= 0.05) sl.style.setProperty('--p', (p - 0.05).toFixed(2));
+    for (let k = 1; k > 0.66 && sl.scrollHeight > sl.clientHeight + 1; k -= 0.02) sl.style.setProperty('--k', (k - 0.02).toFixed(2));
+  });
 }
+let refitT;
 window.addEventListener('resize', () => {
-  const card = document.querySelector('#panel .card');
-  if (card) sizeCard(card);
+  clearTimeout(refitT);
+  refitT = setTimeout(() => fitSlides([...document.querySelectorAll('#panel .cbox .slide')]), 150);
 });
 
 document.addEventListener('keydown', e => {
   if (e.target.closest('input, textarea, select, video, audio, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (!showCard && !'aAdD'.includes(e.key)) return;
-  if (selected < 0 && 'aAdD'.includes(e.key)) { selectHood(0); return; }
+  if (!showCard) return;
   if (e.key === 'ArrowLeft') { showCard(cardIdx - 1); e.preventDefault(); }
   if (e.key === 'ArrowRight') { showCard(cardIdx + 1); e.preventDefault(); }
-  if (e.key === 'a' || e.key === 'A') selectHood((selected - 1 + hoods.length) % hoods.length);
-  if (e.key === 'd' || e.key === 'D') selectHood((selected + 1) % hoods.length);
 });
 
 /* ---------- print: the tri-fold brochure ---------- */
 // Load the brochure in a hidden iframe and open the print dialog on it directly.
 document.getElementById('print-btn').addEventListener('click', () => {
   let frame = document.getElementById('brochure-frame');
-  const go = () => { frame.contentWindow.focus(); frame.contentWindow.print(); };
+  const go = () => Promise.resolve(frame.contentWindow.fitted).catch(() => {}).then(() => {   // fonts in, rules fitted
+    frame.contentWindow.focus(); frame.contentWindow.print(); });
   if (frame) { go(); return; }
   frame = document.createElement('iframe');
   frame.id = 'brochure-frame';
