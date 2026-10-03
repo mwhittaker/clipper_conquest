@@ -1,15 +1,12 @@
-# Serves mockups/ (the v2.html game prototype, guide.html, brochure.html, ...) with caddy,
-# the same way as the hand-started `clipper-mockups` container: http://localhost:8013
-#   docker compose up -d
-# Port override (e.g. to test next to the running container): CLIPPER_PORT=18013 docker compose up -d
+# The game server:  docker compose up -d --build     players: http://localhost:8080/
+# The admin page:   http://localhost:8080/admin
+# The game lives in ./game-data. Stop with: docker compose down
 services:
-  mockups:
-    image: caddy:2
-    restart: unless-stopped
+  server:
+    build: .
     ports:
-      - "${CLIPPER_PORT:-8013}:80"
+      - "${CLIPPER_PORT:-8080}:8080"
     volumes:
-      - ./mockups/Caddyfile.mockups:/etc/caddy/Caddyfile:ro
-      - ./mockups:/srv:ro
-      - ./.donotsubmit:/drafts:ro     # draft mockups, at http://localhost:8013/drafts/
-    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+      - ./game-data:/data
+      - .:/app:ro          # serve the files as they are, so edits show up on a refresh
+    restart: unless-stopped

@@ -7,38 +7,44 @@ All motion is a pure function of t so every frame renders deterministically.
 import json, math, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
-from mapdata import HOODS, H, geo, rings, P, inside, segd
+from mapdata import HOODS, H, inside, clearance, zoom
 
 RED, BLUE, LAND, WATER, INK = '#C42847', '#1D6FB8', '#F1F2EE', '#BFDDF3', '#1C1E21'
-RINGS = {f['properties']['name']: [[P(c) for c in r] for r in rings(f['geometry'])] for f in geo['features']}
+CONFETTI_COLORS = ['#C42847', '#1D6FB8', '#FFD966', '#2F86D1', '#F2B233', '#fff']
 
-def zoom(n, pad):
-    x0, y0, x1, y1 = HOODS[n]['bb']; cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-    s = max(x1 - x0, y1 - y0) * pad
-    return [cx - s / 2, cy - s / 2, s, s]
 
-def interior_points(n, k=3, axis=0, avoid=0):
-    """k well-separated interior points of a neighborhood, spread along an axis (0 = x)."""
-    r = max(RINGS[n], key=lambda r: len(r)); x0, y0, x1, y1 = HOODS[n]['bb']
+def interior_points(n, k=3, avoid=0):
+    """k well-separated interior points of neighborhood n, west to east, each at least
+    `avoid` from its label point (where the score badge sits)."""
+    r = max(HOODS[n]['rings'], key=len); x0, y0, x1, y1 = HOODS[n]['bb']
+    cx, cy = HOODS[n]['c']
     cands = []
     for i in range(60):
         for j in range(60):
             x = x0 + (x1 - x0) * (i + .5) / 60; y = y0 + (y1 - y0) * (j + .5) / 60
-            if inside(r, x, y):
-                d = min(segd(x, y, r[q - 1], r[q]) for q in range(len(r)))
-                cx, cy = HOODS[n]['c']
-                if math.hypot(x - cx, y - cy) > avoid: cands.append((x, y, d))   # keep clear of the score badge
-    cands.sort(key=lambda c: c[axis])
+            if inside(r, x, y) and math.hypot(x - cx, y - cy) > avoid:
+                cands.append((x, y, clearance(r, x, y)))
+    cands.sort(key=lambda c: c[0])
     out = []
     for q in range(k):                                    # best-clearance point in each slice
         sl = cands[int(len(cands) * q / k): int(len(cands) * (q + 1) / k)]
         x, y, _ = max(sl, key=lambda c: c[2]); out.append([round(x, 1), round(y, 1)])
     return out
 
+
 def map_svg(view, cls=''):
     paths = ''.join(f'<path class="lh" data-n="{n}" d="{h["d"]}"/>' for n, h in HOODS.items())
-    return (f'<svg class="lmap {cls}" viewBox="{" ".join(f"{v:.1f}" for v in view)}" preserveAspectRatio="xMidYMid meet">'
+    return (f'<svg class="lmap {cls}" viewBox="{view_box(view)}" preserveAspectRatio="xMidYMid meet">'
             f'{paths}<g class="lfx"></g></svg>')
+
+
+def view_box(view):
+    return ' '.join(f'{v:.1f}' for v in view)
+
+
+def dots_svg(view):
+    """An empty svg over a zoomed map scene, for the team dots of runLegs()."""
+    return f'<svg viewBox="{view_box(view)}" preserveAspectRatio="xMidYMid meet"><g class="dots"></g></svg>'
 
 COIT = '''<svg viewBox="0 0 600 680" preserveAspectRatio="xMidYMid slice" class="coit">
 <defs><linearGradient id="csky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DB9E8"/><stop offset="1" stop-color="#D9ECF8"/></linearGradient></defs>
@@ -127,7 +133,7 @@ def build(tl, caps):
     PTS = {n: [round(h['c'][0], 1), round(h['c'][1], 1)] for n, h in HOODS.items()}
     data = {'sim': sim, 'phone': phone, 'nb': nb, 'hay': hay, 'strat': strat, 'PTS': PTS}
 
-    confetti = ''.join(f'<i style="background:{["#C42847","#1D6FB8","#FFD966","#2F86D1","#F2B233","#fff"][i % 6]}"></i>' for i in range(110))
+    confetti = ''.join(f'<i style="background:{CONFETTI_COLORS[i % 6]}"></i>' for i in range(110))
     full = [-20, -20, 1040, H + 40]
     html = f'''
 <div id="L-sim" class="layer"><div class="lbox">{map_svg(full)}
@@ -150,8 +156,8 @@ def build(tl, caps):
         <div class="grid"><div class="th pick">{COIT}<div class="pick-chk">&#10003;</div></div><div class="th" style="background:#E9C46A"></div><div class="th" style="background:#8AB17D"></div><div class="th" style="background:#E76F51"></div><div class="th" style="background:#7FA7C9"></div><div class="th" style="background:#B5838D"></div><div class="th" style="background:#6D8A96"></div><div class="th" style="background:#F4A261"></div><div class="th" style="background:#9C89B8"></div></div></div>
       <div class="tapfx"></div></div>
   </div></div></div>
-<div id="L-nb" class="layer zoomlayer">{'<svg viewBox="' + " ".join(f"{v:.1f}" for v in nbv) + '" preserveAspectRatio="xMidYMid meet"><g class="dots"></g></svg>'}</div>
-<div id="L-hay" class="layer zoomlayer">{'<svg viewBox="' + " ".join(f"{v:.1f}" for v in hv) + '" preserveAspectRatio="xMidYMid meet"><g class="dots"></g></svg>'}</div>
+<div id="L-nb" class="layer zoomlayer">{dots_svg(nbv)}</div>
+<div id="L-hay" class="layer zoomlayer">{dots_svg(hv)}</div>
 <div id="L-strat" class="layer"><div class="lbox" style="left:64px; top:150px; width:1000px; height:880px">{map_svg(full)}
   <div class="pill"><b class="pr">0</b><span class="pc">3:10:00</span><b class="pb">0</b></div></div></div>'''
 
@@ -217,7 +223,7 @@ def build(tl, caps):
 .tapfx {{ position:absolute; width:64px; height:64px; margin:-32px 0 0 -32px; border-radius:50%; background:rgba(28,30,33,.28); opacity:0; }}
 [data-id="1b-title"] .mapbox, [data-id="2a-grey"] .mapbox, [data-id="7a-costs"] .mapbox, [data-id="4a-phone"] .phone, [data-id="4b-upload"] .phone {{ display:none; }}
 '''
-    js = (JS.replace('__L__', json.dumps(data)))
+    js = JS.replace('__L__', json.dumps(data))
     return html, css, js, ev
 
 JS = r'''

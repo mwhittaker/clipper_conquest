@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipper Conquest replay</title>
+<!-- The public replay site (desktop). It opens a replay file entirely in the browser:
+     nothing is uploaded. Open with ?demo to skip straight to the demo game. -->
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  :root { --red: #C42847; --blue: #1D6FB8; --ink: #1C1E21; --muted: #6A7076; --line: #D9DDE1;
+          --land: #EEF0EC; --water: #BFDDF3; --gold: #D9A21B; }
+  html { scroll-behavior: auto; }
+  body { font-family: system-ui, sans-serif; color: var(--ink); background: #fff; line-height: 1.45; }
+  button { font: inherit; }
+  [hidden] { display: none !important; }
+  .cf { color: var(--red); } .cs { color: var(--blue); }
+
+  /* ---------- open a file ---------- */
+  #open { min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; }
+  .open-card { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 14px; }
+  .open-card h1 { font-size: clamp(34px, 5vw, 52px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+  .open-card h1 .a { color: var(--blue); } .open-card h1 .b { color: var(--red); }
+  .open-card p { color: var(--muted); }
+  .drop { display: grid; place-items: center; text-align: center; gap: 4px; padding: 34px 20px; border: 2px dashed #C4CAD0;
+    border-radius: 16px; cursor: pointer; color: var(--muted); }
+  .drop b { color: var(--ink); font-size: 17px; }
+  .drop.over { border-color: var(--ink); background: #F6F7F8; }
+  .btn { padding: 11px 18px; border-radius: 10px; border: 0; background: var(--ink); color: #fff; font-weight: 700; cursor: pointer; }
+  .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
+  .msg { color: var(--red); min-height: 1.4em; font-size: 14px; }
+  .small { font-size: 13.5px; }
+  .small a { color: var(--ink); }
+
+  /* ---------- the replay: map stays put on the left, the timeline scrolls on the right ---------- */
+  #replay { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+  #stage { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 22px 26px 18px;
+    border-right: 1px solid var(--line); }
+  .board { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding-bottom: 14px; }
+  .side { display: flex; align-items: center; gap: 10px; }
+  .side.blue { justify-content: flex-end; }
+  .side .nm { font-size: 15px; font-weight: 700; }
+  .side .n { font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .side .dot { width: 14px; height: 14px; border-radius: 50%; position: relative; }
+  .crown { width: 26px; height: 20px; fill: var(--gold); }
+  .side .dot .crown { position: absolute; left: 50%; bottom: 75%; width: 20px; height: 15px; transform: translateX(-50%) rotate(-8deg); }
+  .mid { text-align: center; }
+  .mid .tod { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .mid .left { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .mapbox { flex: 1; min-height: 0; background: var(--water); border-radius: 16px; overflow: hidden; }
+  #rmap { width: 100%; height: 100%; display: block; }
+  #rmap .hood { fill: var(--land); stroke: #fff; stroke-width: 1.2; vector-effect: non-scaling-stroke; transition: fill .25s; }
+  #rmap .hood.red { fill: var(--red); } #rmap .hood.blue { fill: var(--blue); }
+  #rmap .hood.on { stroke: #FFD34D; stroke-width: 4; }
+  #rmap .lab { font-size: 12.5px; font-weight: 700; fill: #3A4148; text-anchor: middle; pointer-events: none;
+    paint-order: stroke; stroke: rgba(255,255,255,.85); stroke-width: 3px; }
+  #rmap .lab.held { fill: #fff; stroke: rgba(0,0,0,.35); }
+  #rmap .trail { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: .5; vector-effect: non-scaling-stroke; }
+  #rmap .trail.red { stroke: var(--red); } #rmap .trail.blue { stroke: var(--blue); }
+  #rmap .tdot { stroke: #fff; stroke-width: 4; vector-effect: non-scaling-stroke; filter: drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
+  #rmap .tdot.red { fill: var(--red); } #rmap .tdot.blue { fill: var(--blue); }
+  .legend { display: flex; gap: 18px; justify-content: center; font-size: 13px; color: var(--muted); padding-top: 10px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .scrub { display: flex; align-items: center; gap: 12px; padding-top: 12px; }
+  .scrub .play { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--ink); color: #fff; font-size: 12px; cursor: pointer; }
+  .scrub .play:focus-visible, #d-range:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .scrub .track { flex: 1; min-width: 0; position: relative; }
+  .scrub .ticks { position: absolute; left: 8px; right: 8px; top: 50%; height: 12px; margin-top: -6px; pointer-events: none; }
+  .scrub .ticks i { position: absolute; top: 0; width: 2px; height: 12px; margin-left: -1px; border-radius: 1px; opacity: .7; }
+  #d-range { display: block; width: 100%; margin: 0; accent-color: var(--ink); position: relative; background: transparent; cursor: pointer; }
+  .scrub .at { flex: none; min-width: 70px; text-align: right; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  #feed { padding: 34px 34px 0; }
+  .feed-head { padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .feed-head h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.01em; }
+  .feed-head p { color: var(--muted); font-size: 14px; }
+  .feed-head button { background: none; border: 0; padding: 0; text-decoration: underline; color: var(--ink); cursor: pointer; font-size: 14px; }
+  #events { list-style: none; padding: 0; }
+  .ev { display: grid; grid-template-columns: 76px 1fr; gap: 14px; padding: 22px 0; border-bottom: 1px solid #EEF0F2;
+    opacity: .55; transition: opacity .2s; }
+  .ev.on { opacity: 1; }
+  .ev-score { display: block; margin-top: 4px; font-size: 15px; font-weight: 800; }
+  .ev-time { font-size: 13.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .ev-line { font-size: 17px; }
+  .ev-line b.team { font-weight: 800; }
+  .ev.take .ev-line { font-weight: 700; }
+  .ev-sub { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .ev-photos { display: grid; gap: 8px; margin-top: 12px; max-width: 520px; }
+  .ev-photos.n2 { grid-template-columns: 1fr 1fr; }
+  .ev-photos.n3 { grid-template-columns: 1fr 1fr 1fr; }
+  .ev-photos:empty { display: none; }
+  .ev-photo { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+    border-radius: 12px; cursor: zoom-in; border: 0; padding: 0; background: #E8EAEC; }
+  .ev-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
+  .ev.bookend .ev-line { font-size: 20px; font-weight: 800; }
+  .ev.failed .ev-line::after { content: ' ✗'; color: #A31F3B; font-weight: 800; }
+  .ev.bookend { opacity: 1; }
+  .hour { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+    padding: 26px 0 4px; border-bottom: 1px solid var(--line); }
+  .tail { height: 60vh; }
+
+  #lightbox { position: fixed; inset: 0; background: rgba(12,14,16,.92); display: none; place-items: center; z-index: 20; padding: 30px; cursor: zoom-out; }
+  #lightbox.show { display: grid; }
+  #lightbox img { max-width: 100%; max-height: 82vh; border-radius: 10px; }
+  #lightbox p { color: #fff; text-align: center; margin-top: 10px; }
+
+  @media (max-width: 900px) {
+    #replay { grid-template-columns: 1fr; }
+    #stage { height: 48vh; padding: 10px 12px; z-index: 2; background: #fff; border-right: 0; border-bottom: 1px solid var(--line); }
+    .side .n { font-size: 30px; } .mid .tod { font-size: 18px; } .legend { display: none; }
+    #feed { padding: 16px 16px 0; }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="replay-core.js"></script>
+<script src="mobile.js"></script>   <!-- the phone view, shared with the game app -->
+</head>
+<body>
+
+<section id="open">
+  <div class="open-card">
+    <h1><span class="a">Clipper</span> <span class="b">Conquest</span><br>replay</h1>
+    <p>Open the replay file from the end of your game. It stays on this computer: the page reads it in your browser and uploads nothing.</p>
+    <label class="drop" id="drop"><b>Drop your .ccreplay file here</b><span>or click to choose it</span>
+      <input type="file" id="file" accept=".ccreplay,.zip" hidden></label>
+    <p class="msg" id="msg" role="status"></p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap">
+      <button class="btn ghost" id="demo">Watch a demo game</button>
+      <button class="btn ghost" id="last" hidden>Reopen the last file</button>
+    </div>
+  </div>
+</section>
+
+<div id="replay" hidden>
+  <aside id="stage">
+    <div class="board">
+      <div class="side red"><span class="dot" style="background:var(--red)"></span><span class="nm">Red</span><span class="n" id="n-red">0</span></div>
+      <div class="mid"><div class="tod" id="tod"></div><div class="left" id="left"></div></div>
+      <div class="side blue"><span class="n" id="n-blue">0</span><span class="nm">Blue</span><span class="dot" style="background:var(--blue)"></span></div>
+    </div>
+    <div class="mapbox"><svg id="rmap" role="img" aria-label="Map of San Francisco neighborhoods at this moment in the game"></svg></div>
+    <div class="scrub">
+      <button class="play" id="d-play" aria-label="Play the game back">▶</button>
+      <div class="track"><div class="ticks" id="d-ticks"></div>
+        <input type="range" id="d-range" step="60000" aria-label="Game time"></div>
+      <span class="at" id="d-at" aria-hidden="true"></span>
+    </div>
+    <div class="legend"><span><i style="background:var(--red)"></i>Red team</span><span><i style="background:var(--blue)"></i>Blue team</span><span>Lines show the last 45 minutes</span></div>
+  </aside>
+  <main id="feed">
+    <div class="feed-head"><h1 id="title"></h1><p id="sub"></p></div>
+    <ol id="events"></ol>
+    <div class="tail"></div>
+  </main>
+</div>
+
+<div id="lightbox" role="dialog" aria-label="Photo"><div><img alt=""><p></p></div></div>
+
+<script>
+(() => {   // the desktop view (the phone view is mobile.js)
+const SHORT = { 'Bayview Hunters Point': 'Bayview', 'Castro/Upper Market': 'Castro', 'Financial District/South Beach': 'FiDi',
+  'Golden Gate Park': 'GG Park', 'Haight Ashbury': 'Haight', 'Hayes Valley': 'Hayes', 'Lone Mountain/USF': 'USF',
+  'McLaren Park': 'McLaren', 'Oceanview/Merced/Ingleside': 'OMI', 'Pacific Heights': 'Pac Heights', 'Presidio Heights': 'Presidio Hts',
+  'Potrero Hill': 'Potrero', 'South of Market': 'SoMa', 'Sunset/Parkside': 'Sunset', 'Treasure Island': 'Treasure Is',
+  'Visitacion Valley': 'Vis Valley', 'West of Twin Peaks': 'W Twin Peaks', 'Western Addition': 'W Addition', 'Bernal Heights': 'Bernal' };
+const CROWN = '<svg class="crown" viewBox="0 0 24 18" aria-hidden="true"><path d="M2 15 1 4l6 5 5-8 5 8 6-5-1 11z"/><rect x="2" y="15.5" width="20" height="2.5" rx="1"/></svg>';
+const $ = s => document.querySelector(s);
+const esc = v => String(v).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));   // names come from a file
+let GEO, CHAL, R;   // map, current challenges, the open replay {game, photos}
+
+/* ---------- opening a file ---------- */
+const msg = t => { $('#msg').textContent = t; };
+async function tryOpen(blob) {
+  try {
+    const r = await CC.openReplay(blob);
+    await CC.remember(blob);
+    start(r);
+  } catch (e) { msg('That doesn’t look like a Clipper Conquest replay file.'); }
+}
+$('#file').onchange = () => { const f = $('#file').files[0]; if (f) tryOpen(f); };
+const drop = $('#drop');
+['dragenter', 'dragover'].forEach(k => drop.addEventListener(k, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(k => drop.addEventListener(k, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) tryOpen(f); });
+$('#demo').onclick = async () => { msg('Making a demo game…'); start(await CC.demo(GEO, CHAL)); };
+
+/* ---------- the map ---------- */
+let P, paths = {}, labels = {}, dots = {}, trails = {};
+function project(features) {       // same projection as the game app
+  let minLon = 999, maxLon = -999, minLat = 999, maxLat = -999;
+  const walk = (c, fn) => Array.isArray(c[0]) ? c.forEach(x => walk(x, fn)) : fn(c);
+  features.forEach(f => walk(f.geometry.coordinates, ([lon, lat]) => {
+    minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon); minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat); }));
+  const kx = Math.cos((minLat + maxLat) / 2 * Math.PI / 180), S = 1000 / ((maxLon - minLon) * kx);
+  return { pt: ([lon, lat]) => [(lon - minLon) * kx * S, (maxLat - lat) * S], W: 1000, H: (maxLat - minLat) * S };
+}
+function buildMap() {
+  const NS = 'http://www.w3.org/2000/svg', svg = $('#rmap'), pr = project(GEO.features);
+  P = pr.pt;
+  svg.setAttribute('viewBox', `-10 -10 ${pr.W + 20} ${(pr.H + 20).toFixed(0)}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  const gh = document.createElementNS(NS, 'g'), gl = document.createElementNS(NS, 'g'), gt = document.createElementNS(NS, 'g');
+  const centers = CC.hoodCenters(GEO);
+  for (const f of GEO.features) {
+    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    let d = '';
+    for (const poly of polys) for (const ring of poly) d += 'M' + ring.map(c => P(c).map(v => v.toFixed(1)).join(',')).join('L') + 'Z';
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', d); p.setAttribute('class', 'hood');
+    gh.appendChild(p); paths[f.properties.name] = p;
+    const [la, lo] = centers[f.properties.name], [x, y] = P([lo, la]);
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', x.toFixed(1)); t.setAttribute('y', (y + 4).toFixed(1)); t.setAttribute('class', 'lab');
+    t.textContent = SHORT[f.properties.name] || f.properties.name;
+    gl.appendChild(t); labels[f.properties.name] = t;
+  }
+  for (const team of ['red', 'blue']) {
+    trails[team] = document.createElementNS(NS, 'polyline'); trails[team].setAttribute('class', 'trail ' + team);
+    dots[team] = document.createElementNS(NS, 'circle'); dots[team].setAttribute('class', 'tdot ' + team); dots[team].setAttribute('r', 13);
+    gt.append(trails[team], dots[team]);
+  }
+  svg.append(gh, gl, gt);
+}
+
+/* ---------- the timeline ---------- */
+function buildFeed() {
+  const g = R.game, w = CC.winner(g), list = $('#events');
+  list.textContent = '';
+  $('#title').textContent = g.title || 'Clipper Conquest';
+  $('#sub').innerHTML = `${new Date(g.start).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })} · `
+    + `${esc(g.teams.red.players.join(', '))} vs ${esc(g.teams.blue.players.join(', '))} · <button id="another">Open another file</button>`;
+  $('#another').onclick = () => { stop(); $('#replay').hidden = true; $('#open').hidden = false; scrollTo(0, 0); };
+  const item = (t, cls, html, score) => {
+    const li = document.createElement('li');
+    li.className = 'ev ' + cls; li.dataset.t = t;
+    const sc = score ? `<span class="ev-score"><span class="cf">${score.red}</span>–<span class="cs">${score.blue}</span></span>` : '';   // the overall score, when it moves
+    li.innerHTML = `<div class="ev-time">${CC.clock(t)}${sc}</div><div class="ev-body">${html}</div>`;
+    list.appendChild(li); return li;
+  };
+  item(g.start, 'bookend', `<p class="ev-line">Game on.</p><p class="ev-sub">Both teams leave the Financial District with five hours on the clock.</p>`);
+  let hour = new Date(g.start).getHours();
+  const feed = CC.events(g).concat((g.fails || []).map(f => ({ ...f, failed: true }))).sort((a, b) => a.t - b.t);
+  for (const e of feed) {
+    const h = new Date(e.t).getHours();
+    if (h !== hour) { hour = h; const li = document.createElement('li'); li.className = 'hour';
+      li.textContent = new Date(e.t).toLocaleTimeString([], { hour: 'numeric' }); list.appendChild(li); }
+    const team = `<b class="team ${e.team === 'red' ? 'cf' : 'cs'}">${CC.TEAM[e.team]}</b>`;
+    const [a, b] = e.team === 'red' ? [e.red, e.blue] : [e.blue, e.red];
+    const line = e.failed ? `${team} failed a one-shot in <b>${esc(e.hood)}</b>`
+      : e.change === 'took' ? `${team} took <b>${esc(e.hood)}</b> ${a}–${b}`
+      : e.change === 'claimed' ? `${team} claimed <b>${esc(e.hood)}</b>`
+      : `${team} completed a challenge in <b>${esc(e.hood)}</b> (${a}–${b})`;
+    const ch = (g.challenges[e.hood] || [])[e.ci];
+    const li = item(e.t, e.failed ? 'failed' : e.change === 'took' ? 'take' : '', `<p class="ev-line">${line}</p>
+      <p class="ev-sub">Challenge ${e.ci + 1}${ch ? ' · ' + ch.title : ''} · by ${esc(e.by)}</p>
+      <div class="ev-photos n${Math.min(3, CC.photosOf(e).length)}">${CC.photosOf(e).map((p, i) => R.photos[p] ? `<button class="ev-photo" data-p="${i}" aria-label="Enlarge photo ${i + 1}"><img alt=""></button>` : '').join('')}</div>`, e.change && e.score);
+    li.dataset.hood = e.hood;
+    const pics = CC.photosOf(e);
+    li.querySelectorAll('.ev-photo').forEach(btn => {
+      const i = +btn.dataset.p, src = R.photos[pics[i]];
+      btn.querySelector('img').src = src;
+      btn.onclick = () => { const lb = $('#lightbox'); lb.querySelector('img').src = src;
+        lb.querySelector('p').textContent = `${CC.TEAM[e.team]} · ${e.hood} · ${CC.clock(e.t)} · ${e.by}` + (pics.length > 1 ? ` · ${i + 1} of ${pics.length}` : ''); lb.classList.add('show'); };
+    });
+  }
+  const [wa, wb] = w.team === 'red' ? [w.score.red, w.score.blue] : [w.score.blue, w.score.red];
+  item(g.end, 'bookend', `<p class="ev-line">${CROWN} Time! ${CC.TEAM[w.team]} wins ${wa}–${wb}.</p>
+    <p class="ev-sub">${w.tie ? 'Tied on neighborhoods: they got there first.' : `${g.completions.length} challenges completed in five hours.`}</p>`);
+}
+$('#lightbox').onclick = () => $('#lightbox').classList.remove('show');
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#lightbox').classList.remove('show'); });
+
+/* ---------- scrolling drives the clock ---------- */
+// The moment shown on the map is where the reading line (40% down the window) crosses the
+// timeline: between two entries it slides smoothly from one's time to the next.
+let anchors = [];
+function measure() {
+  anchors = [...document.querySelectorAll('#events .ev')].map(el => ({ el, y: el.getBoundingClientRect().top + scrollY, t: +el.dataset.t }));
+}
+function onScroll() {
+  if (!anchors.length) return;
+  if (pinned && Math.abs(scrollY - pinned.y) < 1) return;   // we scrolled here ourselves: the time is already set
+  pinned = null; stop();
+  const line = scrollY + innerHeight * 0.4;
+  let i = anchors.findIndex(a => a.y > line) - 1;
+  if (i === -2) i = anchors.length - 1;                    // past the last entry
+  let T, on;
+  if (i < 0) { T = R.game.start; on = anchors[0]; }
+  else if (i >= anchors.length - 1) { T = R.game.end; on = anchors[anchors.length - 1]; }
+  else { const a = anchors[i], b = anchors[i + 1]; T = a.t + (b.t - a.t) * Math.min(1, (line - a.y) / (b.y - a.y)); on = a; }
+  show(T, on);
+}
+function show(T, on) {
+  NOW = T;
+  anchors.forEach(a => a.el.classList.toggle('on', a === on));
+  render(T, on.el.dataset.hood);
+  range.value = T; range.setAttribute('aria-valuetext', CC.clock(T));
+  $('#d-at').textContent = CC.clock(T);
+}
+// Layout changed (photos loaded, window resized): keep a scrubbed-to time, else re-read the scroll.
+function relayout() { measure(); if (pinned) seek(pinned.T); else onScroll(); }
+let queued = false;
+addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; onScroll(); }); } }, { passive: true });
+addEventListener('resize', relayout);
+
+/* ---------- the scrubber: drag it or play it and the page scrolls to match ---------- */
+// The same reading-line mapping run backwards: time -> where the line must sit -> scroll there.
+// We remember where we scrolled to, so the scroll handler doesn't turn it back into a time.
+let NOW = 0, pinned = null, playing = null;
+const range = $('#d-range'), play = $('#d-play');
+function seek(T) {
+  if (!anchors.length) return;
+  let i = anchors.length - 1;
+  while (i > 0 && anchors[i].t > T) i--;                    // the last entry at or before T
+  const a = anchors[i], b = anchors[i + 1];
+  const y = b && b.t > a.t ? a.y + (b.y - a.y) * (T - a.t) / (b.t - a.t) : a.y;
+  scrollTo(0, Math.max(0, y - innerHeight * 0.4));
+  pinned = { y: scrollY, T };
+  show(T, a);
+}
+function buildScrubber() {
+  const g = R.game, ticks = $('#d-ticks');
+  range.min = g.start; range.max = g.end;
+  ticks.textContent = '';                                   // a tick each time a neighborhood changed hands
+  for (const e of CC.events(g)) if (e.change) {
+    const i = document.createElement('i');
+    i.style.left = (100 * (e.t - g.start) / (g.end - g.start)) + '%';
+    i.style.background = CC.COLOR[e.team];
+    ticks.appendChild(i);
+  }
+}
+function stop() {
+  if (playing) cancelAnimationFrame(playing);
+  playing = null; play.textContent = '▶'; play.setAttribute('aria-label', 'Play the game back');
+}
+range.addEventListener('input', () => { stop(); seek(+range.value); });
+play.onclick = () => {
+  if (playing) return stop();
+  const g = R.game, SPEED = (g.end - g.start) / 45e3;     // the whole game in about 45 seconds
+  let T = NOW >= g.end ? g.start : NOW, last = performance.now();
+  play.textContent = '❚❚'; play.setAttribute('aria-label', 'Pause');
+  const step = now => {
+    T = Math.min(g.end, T + (now - last) * SPEED); last = now;
+    seek(T);
+    if (T >= g.end) return stop();
+    playing = requestAnimationFrame(step);
+  };
+  seek(T);
+  playing = requestAnimationFrame(step);
+};
+// Our own scrolling during play would swallow the reader's, so any attempt to scroll pauses it.
+addEventListener('wheel', () => stop(), { passive: true });
+addEventListener('touchstart', () => stop(), { passive: true });
+addEventListener('keydown', e => {
+  if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(e.key) && !e.target.closest('.scrub')) stop();
+});
+
+function render(T, hood) {
+  const g = R.game, tally = CC.tallyAt(g, T), s = { red: 0, blue: 0 };
+  for (const [name, p] of Object.entries(paths)) {
+    const x = tally[name];
+    p.setAttribute('class', 'hood' + (x ? ' ' + x.holder : '') + (name === hood ? ' on' : ''));
+    labels[name].setAttribute('class', 'lab' + (x ? ' held' : ''));
+    if (x) s[x.holder]++;
+  }
+  $('#n-red').textContent = s.red; $('#n-blue').textContent = s.blue;
+  $('#tod').textContent = CC.clock(T);
+  const left = Math.max(0, g.end - T), h = Math.floor(left / 3600e3), m = Math.floor(left / 60e3) % 60;
+  $('#left').textContent = left ? `${h}:${String(m).padStart(2, '0')} left` : 'Final';
+  const w = CC.winner(g);
+  document.querySelectorAll('.side .dot').forEach(el => { el.innerHTML = ''; });
+  if (!left) document.querySelector(`.side.${w.team} .dot`).innerHTML = CROWN;   // perched on the winner's dot
+  for (const team of ['red', 'blue']) {
+    const here = CC.locationAt(g, team, T);
+    dots[team].style.display = here ? '' : 'none';
+    if (!here) { trails[team].setAttribute('points', ''); continue; }
+    const [x, y] = P([here[1], here[0]]);
+    dots[team].setAttribute('cx', x.toFixed(1)); dots[team].setAttribute('cy', y.toFixed(1));
+    trails[team].setAttribute('points', CC.trail(g, team, T).map(([la, lo]) => P([lo, la]).map(v => v.toFixed(1)).join(',')).concat(`${x},${y}`).join(' '));
+  }
+}
+
+// Phones get the phone view (the same one the game app shows after a game); bigger screens get
+// the map-and-timeline view below.
+const PHONE = matchMedia('(max-width: 700px)');
+async function showPhone(r) {
+  $('#open').hidden = true; $('#replay').hidden = true;
+  const css = document.createElement('link');
+  css.rel = 'stylesheet'; css.href = 'mobile.css';
+  await new Promise(done => { css.onload = css.onerror = done; document.head.appendChild(css); });
+  mountMobile();
+  await startMobileReplay(r, GEO, CHAL);
+}
+
+function start(r) {
+  if (PHONE.matches) return showPhone(r);
+  R = r;
+  msg('');
+  $('#open').hidden = true; $('#replay').hidden = false;
+  stop(); pinned = null;
+  buildFeed(); buildScrubber(); scrollTo(0, 0);
+  // photos change the layout as they load, so re-measure then
+  measure(); onScroll();
+  document.querySelectorAll('.ev-photo img').forEach(im => im.addEventListener('load', relayout, { once: true }));
+}
+
+/* ---------- boot ---------- */
+Promise.all([fetch('sf_neighborhoods.geojson').then(r => r.json()), fetch('challenges.json').then(r => r.json())])
+  .then(async ([geo, chal]) => {
+    GEO = geo; CHAL = CC.trios(chal); buildMap();
+    const last = await CC.recall();
+    if (last) { $('#last').hidden = false; $('#last').onclick = () => tryOpen(last.blob); }
+    if (new URLSearchParams(location.search).has('demo')) $('#demo').click();
+  });
+})();
+</script>
+</body>
+</html>

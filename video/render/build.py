@@ -1,59 +1,89 @@
 #!/usr/bin/env python3
-"""Compose every storyboard frame into one animated page (render/index.html) driven by
-window.render(t), plus timeline.json with each beat's start/duration and voiceover offset.
-Beat length = voiceover length + padding. Run video/frames/build.py first.
+"""Compose every scene frame into one animated page, index.html, driven by
+window.render(t). Also writes timeline.json (each beat's start, duration and voiceover
+offset, plus sound-effect times for mix.py), captions.srt, and vo/lines.json (the
+voiceover lines from beats.py, for kokoro/tts.py). A beat lasts its voiceover plus
+padding. Run video/frames/build.py first.
 """
 import json, os, re, sys, wave
 HERE = os.path.dirname(os.path.abspath(__file__))
+FRAMES_DIR = os.path.join(HERE, '..', 'frames')
+VO_DIR = os.path.join(HERE, 'vo')
 sys.path.insert(0, HERE)
-import layers
-FR = os.path.join(HERE, '..', 'frames')
 sys.path.insert(0, os.path.join(HERE, '..'))
-from beats import BEATS as _BEATS
-BEATS = [b[0] for b in _BEATS]
+import layers
+from beats import BEATS
 
-FPS, XFADE, LEAD, TAIL = 30, 0.45, 0.45, 0.75
-def vo_len(b):
-    p = os.path.join(HERE, 'vo', b + '.wav')
+BEAT_IDS = [b[0] for b in BEATS]
+with open(os.path.join(VO_DIR, 'lines.json'), 'w') as fh:
+    json.dump([{'id': b[0], 'text': b[3]} for b in BEATS if b[3]], fh, indent=1)
+
+# Kokoro's per-sentence timings {beat id: [[start, end, sentence], ...]}, relative to each clip
+CAPTIONS_JSON = os.path.join(VO_DIR, 'captions.json')
+VO_CAPTIONS = json.load(open(CAPTIONS_JSON)) if os.path.exists(CAPTIONS_JSON) else {}
+
+# ---------- timing ----------
+FPS = 30
+XFADE = 0.45        # cross-fade between beats (s)
+LEAD = 0.45         # from the start of a beat to its voiceover
+TAIL = 0.75         # after the voiceover ends
+MIN_DUR = {'0-tap': 3.6, '5b-blue': 3.4, '6b-sweep': 8.2, '7a-costs': 7.4, '8a-end': 7.5}   # default 2.5
+VO_LEAD = {'4b-upload': 1.3}   # let the upload play out before "tap Complete"
+
+
+def vo_len(beat_id):
+    """Length in seconds of a beat's voiceover clip (0 if it has none)."""
+    p = os.path.join(VO_DIR, beat_id + '.wav')
     if not os.path.exists(p): return 0.0
-    w = wave.open(p); return w.getnframes() / w.getframerate()
-MIN = {'0-tap': 3.6, '5b-blue': 3.4, '6b-sweep': 8.2, '7a-costs': 7.4, '8a-end': 7.5}
+    with wave.open(p) as w:
+        return w.getnframes() / w.getframerate()
+
+
 timeline, t = [], 0.0
-for b in BEATS:
+for b in BEAT_IDS:
     v = vo_len(b)
-    d = max(LEAD + v + TAIL, MIN.get(b, 2.5))
-    if b == '2a-grey' and os.path.exists(os.path.join(HERE, 'vo', 'captions.json')):   # hold for the finale after the clock hits zero
-        c2 = json.load(open(os.path.join(HERE, 'vo', 'captions.json')))['2a-grey']
-        d = max(d, LEAD + layers.zero_offset(c2) + 3.0)
-    lead = {'4b-upload': 1.3}.get(b, LEAD)               # let the upload play out before "tap Complete"
-    d = max(d, lead + v + TAIL)
+    lead = VO_LEAD.get(b, LEAD)
+    d = max(lead + v + TAIL, MIN_DUR.get(b, 2.5))
+    if b == '2a-grey' and VO_CAPTIONS:   # hold for the finale after the clock hits zero
+        d = max(d, LEAD + layers.zero_offset(VO_CAPTIONS['2a-grey']) + 3.0)
     timeline.append({'id': b, 'start': round(t, 3), 'dur': round(d, 3), 'vo': round(t + lead, 3) if v else None})
     t += d
-TOTAL = round(t + 0.6, 3)
-CAPS = []
-cp = os.path.join(HERE, 'vo', 'captions.json')
-if os.path.exists(cp):
-    cj = json.load(open(cp))
-    for b in timeline:
-        for s0, s1, txt in cj.get(b['id'], []):
-            CAPS.append([round(b['vo'] + s0, 3), round(b['vo'] + s1, 3), txt])
-def srt_t(x):
-    h, r = divmod(x, 3600); m, r = divmod(r, 60); return f'{int(h):02}:{int(m):02}:{int(r):02},{int((r % 1) * 1000):03}'
-with open(os.path.join(HERE, 'captions.srt'), 'w') as fh:
-    for i, (a0, a1, txt) in enumerate(CAPS, 1):
-        end = min(a1 + .35, CAPS[i][0] - .05) if i < len(CAPS) else a1 + .35
-        fh.write(f'{i}\n{srt_t(a0)} --> {srt_t(end)}\n{txt}\n\n')
+TOTAL = round(t + 0.6, 3)   # the last beat fades out over its final 0.6 s
 
-L_HTML, L_CSS, L_JS, EVENTS = layers.build(timeline, json.load(open(cp)) if os.path.exists(cp) else {})
+# ---------- captions ----------
+CAPS = [[round(b['vo'] + s0, 3), round(b['vo'] + s1, 3), txt]
+        for b in timeline for s0, s1, txt in VO_CAPTIONS.get(b['id'], [])]
+
+
+def caption_end(i):
+    """Caption i stays up 0.35 s past its sentence, but clears 0.05 s before the next one."""
+    end = CAPS[i][1] + .35
+    return min(end, CAPS[i + 1][0] - .05) if i + 1 < len(CAPS) else end
+
+
+def srt_time(x):
+    h, r = divmod(x, 3600); m, r = divmod(r, 60)
+    return f'{int(h):02}:{int(m):02}:{int(r):02},{int((r % 1) * 1000):03}'
+
+
+with open(os.path.join(HERE, 'captions.srt'), 'w') as fh:
+    for i, (start, _, txt) in enumerate(CAPS):
+        fh.write(f'{i + 1}\n{srt_time(start)} --> {srt_time(caption_end(i))}\n{txt}\n\n')
+
+# ---------- the page ----------
+L_HTML, L_CSS, L_JS, EVENTS = layers.build(timeline, VO_CAPTIONS)
+# every scene shares the same <style> and font <link>, so take them from the first
 css = head = None; sections = []
-for i, b in enumerate(BEATS):
-    h = open(os.path.join(FR, b + '.html')).read()
+for b in BEAT_IDS:
+    h = open(os.path.join(FRAMES_DIR, b + '.html')).read()
     if css is None:
         css = re.search(r'<style>(.*?)</style>', h, re.S).group(1)
         head = re.search(r'(<link[^>]+>)', h).group(1)
     body = re.search(r'<div class="stage">(.*)</div></body>', h, re.S).group(1)
     sections.append(f'<section class="beat" data-id="{b}" style="opacity:0">{body}</section>')
 
+# window.render(t): cross-fades the beats, animates each beat's own elements, shows the
+# captions, then calls renderLayers(t) from layers.py.
 ANIM = r'''
 const TL = __TL__, TOTAL = __TOTAL__, XF = __XF__, CAPS = __CAPS__, LOCK_AT = __LOCK__;
 const clamp = (x, a=0, b=1) => Math.max(a, Math.min(b, x));
@@ -154,7 +184,11 @@ window.render = function (t) {
   cap.textContent = txt; cap.style.opacity = txt ? 1 : 0;
   renderLayers(t);
 };
-'''.replace('__TL__', json.dumps(timeline)).replace('__TOTAL__', str(TOTAL)).replace('__XF__', str(XFADE)).replace('__CAPS__', json.dumps(CAPS)).replace('__LOCK__', str(layers.LOCK_AT))
+'''
+
+for key, value in {'__TL__': json.dumps(timeline), '__TOTAL__': str(TOTAL), '__XF__': str(XFADE),
+                   '__CAPS__': json.dumps(CAPS), '__LOCK__': str(layers.LOCK_AT)}.items():
+    ANIM = ANIM.replace(key, value)
 
 page = f'''<!doctype html><html><head><meta charset="utf-8">{head}<style>{css}
 .beat {{ position:absolute; inset:0; background:#fff; transform-origin:50% 50%; }}
@@ -164,6 +198,8 @@ page = f'''<!doctype html><html><head><meta charset="utf-8">{head}<style>{css}
 {L_CSS}
 </style></head><body><div class="stage"><svg width="0" height="0" style="position:absolute"><defs><pattern id="tie" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="14" height="28" fill="#C42847"/><rect x="14" width="14" height="28" fill="#1D6FB8"/></pattern></defs></svg>{"".join(sections)}{L_HTML}<div id="cap"></div></div>
 <script>{ANIM}\n{L_JS}</script></body></html>'''
-open(os.path.join(HERE, 'index.html'), 'w').write(page)
-json.dump({'fps': FPS, 'total': TOTAL, 'beats': timeline, 'events': EVENTS}, open(os.path.join(HERE, 'timeline.json'), 'w'), indent=1)
-print(f'index.html: {len(page)//1024} KB, {len(BEATS)} beats, total {TOTAL:.1f}s = {int(TOTAL*FPS)} frames')
+with open(os.path.join(HERE, 'index.html'), 'w') as fh:
+    fh.write(page)
+with open(os.path.join(HERE, 'timeline.json'), 'w') as fh:
+    json.dump({'fps': FPS, 'total': TOTAL, 'beats': timeline, 'events': EVENTS}, fh, indent=1)
+print(f'index.html: {len(page)//1024} KB, {len(BEAT_IDS)} beats, total {TOTAL:.1f}s = {int(TOTAL*FPS)} frames')

@@ -1,0 +1,6 @@
+.git
+game-data
+video
+.donotsubmit
+**/__pycache__
+**/*.swp

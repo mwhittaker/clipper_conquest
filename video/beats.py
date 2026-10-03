@@ -1,6 +1,7 @@
 """The rules video, beat by beat: (frame id, section, timecode, voiceover, what moves).
-Source of truth for the voiceover wording; imported by storyboard.py and render/build.py."""
-# (frame, section, time, voiceover, what moves)
+Source of truth for the beat order and the voiceover wording. frames/build.py makes one
+scene per beat; render/build.py times the beats and writes render/vo/lines.json from them
+for the Kokoro voiceover (render/kokoro/tts.py)."""
 BEATS = [
  ('0-tap', '1 · Cold open', '0:00', '', 'A card reader on a white screen. A big Clipper Conquest card swipes in, taps (beep, the reader lights green), then swipes out, wiping the screen white behind it.'),
  ('1b-title', '1 · Cold open', '0:08', 'Two teams. Forty-one neighborhoods. One clock. This is Clipper Conquest.', 'A few neighborhoods fill red and blue; the title slides in.'),

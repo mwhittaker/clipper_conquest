@@ -1,15 +1,15 @@
 """Kokoro voiceover, one sentence at a time so captions get exact timings.
 Reads /vo/lines.json [{id, text}], writes /vo/<id>.wav and /vo/captions.json
 {id: [[start_s, end_s, sentence], ...]} (times relative to the start of the clip)."""
-import json, re, sys
+import json, os, re, sys
 import numpy as np, soundfile as sf
 from kokoro import KPipeline
 voice = sys.argv[1] if len(sys.argv) > 1 else 'af_heart'
 ONLY = set(sys.argv[2].split(',')) if len(sys.argv) > 2 else None   # regenerate just these ids
 SR, GAP, SPEED = 24000, 0.16, 1.12
 pipe = KPipeline(lang_code=voice[0], repo_id='hexgrad/Kokoro-82M')
-import os
 caps = json.load(open('/vo/captions.json')) if ONLY and os.path.exists('/vo/captions.json') else {}
+# spoken forms for text Kokoro would misread; the captions keep the written form
 SAY = {'11:58': 'eleven fifty-eight', '12:30': 'twelve thirty', 'Pier 39': 'Pier thirty-nine', ' 41 ': ' forty-one '}
 for L in json.load(open('/vo/lines.json')):
     if ONLY and L['id'] not in ONLY: continue

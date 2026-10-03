@@ -1,5 +1,5 @@
 __pycache__/
-# ~400 MB of rendered video frames; the finished video is video/clipper-conquest-rules.mp4
+# ~400 MB of rendered video frames; the finished video is rules-video.mp4
 video/render/out/
 video/render/poster/
 video/render/out_cmd.sh
@@ -7,3 +7,6 @@ video/render/out_cmd.sh
 # Scratch space for draft mockups and experiments; served locally at
 # http://localhost:8013/drafts/ and never committed or published.
 .donotsubmit/
+
+# game data from running the server locally (the log, photos and admin key)
+game-data/

@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
-"""Storyboard frames for the rules video in the guide/app look (white, system type,
-water-blue map panel, red #C42847 / blue #1D6FB8). Writes video/frames/NN-name.html;
-screenshot each at 1920x1080 with headless Chrome.
+"""Scene frames for the rules video in the guide/app look (white, system type,
+water-blue map panel, red #C42847 / blue #1D6FB8). Writes one video/frames/<beat>.html
+per beat in beats.py (1920x1080); render/build.py composes them into the video.
+
+In the video, render/layers.py draws over some of these scenes: its layers replace the
+map on 1b-title, 2a-grey and 7a-costs and the phone on 4a-phone and 4b-upload.
 """
-import json, os, sys, html
+import json, os, re, sys, html
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..'))
-from mapdata import HOODS, H, P
+from beats import BEATS
+from mapdata import HOODS, H, P, zoom
 
-ROUTES = [f for f in json.load(open(os.path.join(HERE, '../../mockups/muni_routes.geojson')))['features']
-          if f['properties']['mode'] != 'local']
-QR = json.load(open(os.path.join(HERE, '../../mockups/qr_codes.json')))['guide']
-CH = json.load(open(os.path.join(HERE, '../../mockups/challenges.json')))
-ORDER = json.load(open(os.path.join(HERE, '../../mockups/hood_order.json')))
+ROOT = os.path.join(HERE, '..', '..')
+MUNI = json.load(open(os.path.join(ROOT, 'muni_routes.geojson')))['features']
+ROUTES = [f for f in MUNI if f['properties']['mode'] != 'local']   # Metro, streetcar, cable car, rapid
+LOCAL_ROUTES = [f for f in MUNI if f['properties']['mode'] == 'local']
+QR = re.search(r"QR_GUIDE = '([^']+)'", open(os.path.join(ROOT, 'build_brochure.py')).read()).group(1)   # the guide's QR code
+sys.path.insert(0, ROOT)
+from server import md
+_SRC = json.load(open(os.path.join(ROOT, 'challenges.json'), encoding='utf-8'))
+ORDER = list(_SRC)
+# the three challenges per neighborhood (the first three in challenges.json), with the title as the game shows it (and the type)
+CH = {n: [dict(c, title=md(c['title'])) for c in h['candidates'][:3]] for n, h in _SRC.items()}
 SHORT = {'Financial District/South Beach': 'FiDi', 'Castro/Upper Market': 'Castro',
          'Oceanview/Merced/Ingleside': 'OMI', 'Lone Mountain/USF': 'USF', 'Haight Ashbury': 'Haight',
          'Golden Gate Park': 'GG Park', 'Bayview Hunters Point': 'Bayview', 'Sunset/Parkside': 'Sunset',
@@ -29,7 +39,12 @@ MID = {
  'Inner Sunset': (2, 0, 'r'), 'Golden Gate Park': (1, 0, 'r'), 'Twin Peaks': (1, 0, 'r'),
  'Glen Park': (2, 1, 'r'), 'Japantown': (0, 1, 'b'), 'Lone Mountain/USF': (1, 0, 'r'),
 }
-tally = lambda S, t: sum(1 for v in S.values() if v[2] == t)
+
+
+def tally(S, team):
+    """How many neighborhoods team ('r' or 'b') holds in scenario S."""
+    return sum(1 for v in S.values() if v[2] == team)
+
 
 CSS = """
 * { box-sizing:border-box; margin:0; }
@@ -87,17 +102,32 @@ FONTS = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=I
 DEFS = ('<defs><pattern id="tie" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
         '<rect width="14" height="28" fill="#C42847"/><rect x="14" width="14" height="28" fill="#1D6FB8"/></pattern></defs>')
 
+
 def page(body):
     return f'<!doctype html><html><head><meta charset="utf-8">{FONTS}<style>{CSS}</style></head><body><div class="stage">{body}</div></body></html>'
 
+
 def lock_glyph(x, y, h, color='#fff'):
-    w = h * .78; bw, bh = w, h * .56; top = y - h / 2
+    """SVG padlock of height h centered on (x, y)."""
+    w = h * .78; top = y - h / 2
     return (f'<path d="M{x - w*.3:.1f},{top + h*.46:.1f} v{-h*.14:.1f} a{w*.3:.1f},{w*.3:.1f} 0 0 1 {w*.6:.1f},0 v{h*.14:.1f}" '
             f'fill="none" stroke="{color}" stroke-width="{h*.11:.1f}"/>'
-            f'<rect x="{x - bw/2:.1f}" y="{top + h*.44:.1f}" width="{bw:.1f}" height="{bh:.1f}" rx="{h*.08:.1f}" fill="{color}"/>')
+            f'<rect x="{x - w/2:.1f}" y="{top + h*.44:.1f}" width="{w:.1f}" height="{h*.56:.1f}" rx="{h*.08:.1f}" fill="{color}"/>')
+
+
 LOCK_HTML = ('<svg viewBox="0 0 40 40" width="34" height="34">' + lock_glyph(20, 20, 30) + '</svg>')
 
-def mapsvg(S=None, sel=None, focus=None, tie=None, dim=False, view=None, badges=True, names=(), steal=False, route=None, lab=1.0):
+
+def mapsvg(S=None, sel=None, focus=None, tie=None, view=None, badges=True, names=(), steal=False, route=None, lab=1.0):
+    """The neighborhood map as an svg.
+
+    S: {name: (red, blue, holder)} colors each neighborhood by holder ('r', 'b', or 't' for a tie).
+    sel, focus, tie: a neighborhood to highlight yellow, outline, or stripe.
+    view: the viewBox (default: the whole city). badges: show each score in S; steal=True shows
+    instead, on blue neighborhoods, what red needs to steal it (a lock if blue has all three).
+    names: neighborhoods to label. route: neighborhoods to join with a dashed line.
+    lab: extra scale for the score badges.
+    """
     S = S or {}
     vb = view or (-20, -20, 1040, H + 40)
     k = vb[2] / 1000                            # label scale with zoom
@@ -108,7 +138,6 @@ def mapsvg(S=None, sel=None, focus=None, tie=None, dim=False, view=None, badges=
         if n == sel: c = 'h sel'
         if n == tie: c = 'h tie'
         if n == focus: c += ' focus'
-        if dim and n not in (sel, focus, tie): c += ' dim'
         out.append(f'<path class="{c}" data-n="{html.escape(n)}" d="{h["d"]}"/>')
     if route:
         pts = ' '.join(f'{HOODS[n]["c"][0]:.0f},{HOODS[n]["c"][1]:.0f}' for n in route)
@@ -120,215 +149,64 @@ def mapsvg(S=None, sel=None, focus=None, tie=None, dim=False, view=None, badges=
         for n, (r, b, t) in S.items():
             x, y = HOODS[n]['c']
             if steal and t == 'b':
-                cost = '🔒' if b == 3 else str(b + 1 - r)
-                fill = '#1C1E21' if b == 3 else ('#FFD966' if b + 1 - r <= 2 else '#fff')
-                ink = '#fff' if b == 3 else '#1C1E21'
+                locked = b == 3
+                cost = b + 1 - r
+                fill = '#1C1E21' if locked else ('#FFD966' if cost <= 2 else '#fff')
                 rr = 22 * k
-                out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{rr:.0f}" fill="{fill}" stroke="#1C1E21" stroke-width="{2.5*k:.1f}"/>'
-                           + (lock_glyph(x, y, rr * 1.1) if b == 3 else f'<text x="{x:.0f}" y="{y:.0f}" font-size="{24*k:.0f}" font-weight="800" fill="{ink}" text-anchor="middle" dominant-baseline="central">{cost}</text>'))
+                out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{rr:.0f}" fill="{fill}" stroke="#1C1E21" stroke-width="{2.5*k:.1f}"/>')
+                if locked:
+                    out.append(lock_glyph(x, y, rr * 1.1))
+                else:
+                    out.append(f'<text x="{x:.0f}" y="{y:.0f}" font-size="{24*k:.0f}" font-weight="800" fill="#1C1E21" text-anchor="middle" dominant-baseline="central">{cost}</text>')
             else:
                 out.append(f'<text class="badge" x="{x:.0f}" y="{y:.0f}" font-size="{24*k*lab:.1f}" stroke-width="{5*k*lab:.1f}">{r}–{b}</text>')
     out.append('</svg>')
     return ''.join(out)
 
-def routes_svg(hi=(), k=1.0):
+
+def polyline_pts(line):
+    return ' '.join(f'{x:.1f},{y:.1f}' for x, y in (P(c) for c in line))
+
+
+def routes_svg(hi=()):
+    """The Muni rail, cable car and rapid lines in their colors; the routes in hi drawn bold."""
     out = []
     for f in ROUTES:
-        p = f['properties']; w = (9 if p['route'] in hi else 4.5) * k
+        p = f['properties']; w = 9 if p['route'] in hi else 4.5
         op = 1 if (not hi or p['route'] in hi) else .45
         for line in f['geometry']['coordinates']:
-            pts = ' '.join(f'{x:.1f},{y:.1f}' for x, y in (P(c) for c in line))
-            out.append(f'<polyline points="{pts}" fill="none" stroke="{p["color"]}" stroke-width="{w:.1f}" '
+            out.append(f'<polyline points="{polyline_pts(line)}" fill="none" stroke="{p["color"]}" stroke-width="{w:.1f}" '
                        f'stroke-linecap="round" stroke-linejoin="round" opacity="{op}"/>')
     return ''.join(out)
 
-ALL_ROUTES = [f for f in json.load(open(os.path.join(HERE, '../../mockups/muni_routes.geojson')))['features']]
-def locals_svg():
-    out = []
-    for f in ALL_ROUTES:
-        if f['properties']['mode'] != 'local': continue
-        for line in f['geometry']['coordinates']:
-            pts = ' '.join(f'{x:.1f},{y:.1f}' for x, y in (P(c) for c in line))
-            out.append(f'<polyline points="{pts}" fill="none" stroke="#8C97A3" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>')
-    return ''.join(out)
 
-def zoom(n, pad=1.9):
-    x0, y0, x1, y1 = HOODS[n]['bb']; cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
-    s = max(x1 - x0, y1 - y0) * pad
-    return (cx - s / 2, cy - s / 2, s, s)
+def locals_svg():
+    """The local bus lines, thin and grey."""
+    return ''.join(f'<polyline points="{polyline_pts(line)}" fill="none" stroke="#8C97A3" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>'
+                   for f in LOCAL_ROUTES for line in f['geometry']['coordinates'])
+
 
 def bar(S, clock):
+    """The top bar: each team's neighborhood count and the game clock."""
     return (f'<div class="bar"><div class="team r">{tally(S,"r")} <small>Red</small></div>'
             f'<div class="clock">{clock}</div><div class="team b"><small>Blue</small> {tally(S,"b")}</div></div>')
 
-FRAMES = {}
 
-# 1. Title
-FRAMES['01-title'] = page(f'''
-<div class="side" style="left:110px; top:300px; width:760px">
-  <div class="eyebrow">The rules in two minutes</div>
-  <div style="font-size:150px; font-weight:800; letter-spacing:-.035em; line-height:.92; margin:22px 0 30px">
-    <span style="color:#1D6FB8">Clipper</span><br><span style="color:#C42847">Conquest</span></div>
-  <div style="font-size:44px; font-weight:600; color:#6A7076">Tap on. Take over.</div>
-</div>
-<div class="mapbox" style="left:930px; top:60px; width:900px; height:960px">{mapsvg(MID, badges=False)}</div>''')
+SCENES = {}   # beat id -> page, in beat order
 
-# 2. Three challenges in North Beach
-cards = ''.join(f'''<div class="card"><div class="which">Challenge {i+1} of 3 <span class="tag">{c["type"]}</span></div>
-  <div class="t">{c["title"]}</div></div>''' for i, c in enumerate(CH['North Beach']))
-FRAMES['02-challenges'] = page(f'''
-<div class="mapbox" style="left:64px; top:64px; width:952px; height:952px">{mapsvg({}, sel='North Beach', view=zoom('North Beach', 2.6), badges=False, names=['North Beach','Chinatown','Russian Hill','Financial District/South Beach','Nob Hill','Marina'])}</div>
-<div class="side" style="left:1090px; top:150px; width:760px">
-  <div class="eyebrow">Neighborhood {ORDER.index("North Beach")+1} of 41</div>
-  <h2>North Beach</h2>{cards}
-  <div style="font-size:28px; color:#6A7076; margin-top:22px">Every neighborhood has 3 unique challenges.</div>
-</div>''')
-
-# 3. The flip: Red takes North Beach 2–1
-S3 = {'North Beach': (2, 1, 'r')}
-FRAMES['05-flip'] = page(f'''{bar(MID, "4:27:12")}
-<div class="mapbox" style="left:64px; top:150px; width:880px; height:880px">{mapsvg(S3, focus='North Beach', view=zoom('North Beach', 2.4), lab=3.2, names=['Chinatown','Russian Hill','Financial District/South Beach','Nob Hill'])}</div>
-<div class="side feed" style="left:1020px; top:170px; width:840px">
-  <div class="eyebrow">North Beach · timeline</div>
-  <div class="row"><span class="time">11:04</span><span class="check b">✓</span><span><span class="who b">The blue team</span> completes a challenge</span></div>
-  <div class="row"><span class="time">11:40</span><span class="check r">✓</span><span><span class="who r">The red team</span> completes a challenge</span></div>
-  <div class="row"><span class="time">11:58</span><span class="check r">✓</span><span><span class="who r">The red team</span> completes another</span></div>
-  <div class="row flip"><span class="time">11:58</span><span style="font-weight:700">2–1 · <span class="who r">The red team steals North Beach</span></span></div>
-  <div class="verdict" style="margin-top:40px">Complete more than the other team<br>and you <span style="color:#C42847">steal it.</span></div>
-</div>''')
-
-# 4. Tiebreak
-def x(t, t0=11*60, t1=13*60): h, m = map(int, t.split(':')); return 5 + 90 * ((h*60+m) - t0) / (t1 - t0)
-EV = [('b', '11:04', 1), ('r', '11:40', 1), ('r', '11:58', 2), ('b', '12:30', 2)]
-tl = ''.join(f'<div class="tt" style="left:{x(t):.1f}%">{t}</div><div class="dot {c}" style="left:{x(t):.1f}%">{n}</div>' for c, t, n in EV)
-FRAMES['06-tiebreak'] = page(f'''{bar(MID, "4:02:45")}
-<div class="mapbox" style="left:64px; top:150px; width:880px; height:880px">{mapsvg({'North Beach': (2, 2, 't')}, tie='North Beach', view=zoom('North Beach', 2.4), lab=3.2, names=['Chinatown','Russian Hill','Financial District/South Beach','Nob Hill'])}</div>
-<div class="side" style="left:1020px; top:180px; width:840px">
-  <div class="eyebrow">Tie in North Beach</div>
-  <div class="score" style="margin-top:14px"><span class="r">2</span> <span class="x">–</span> <span class="b">2</span></div>
-  <div class="tl"><div class="track"></div>{tl}<div class="flag" style="left:{x("11:58"):.1f}%">The red team reaches 2 first</div></div>
-  <div class="verdict" style="margin-top:40px">Ties go to whoever got there first.<br><b>The red team keeps North Beach.</b></div>
-</div>''')
-
-# 5. Steal costs
-FRAMES['07-steal'] = page(f'''{bar(MID, "2:14:07")}
-<div class="mapbox" style="left:64px; top:150px; width:1000px; height:880px">{mapsvg(MID, steal=True, route=['Western Addition','Japantown','Pacific Heights','Marina'])}</div>
-<div class="side legend" style="left:1130px; top:190px; width:720px">
-  <div class="eyebrow">Two ways to play</div>
-  <h2 style="font-size:64px">Quick, or locked?</h2>
-  <div class="row"><span class="chip" style="background:#C42847; border:5px solid #fff; box-shadow:0 0 0 2px #C42847; min-width:44px; height:44px; padding:0"></span>
-    <span><b style="color:#C42847">The red team</b> does one challenge each. Fast, but easy to steal.</span></div>
-  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">{LOCK_HTML}</span>
-    <span><b style="color:#1D6FB8">The blue team</b> does all three. Slow, but locked for good.</span></div>
-</div>''')
-
-# 3. Muni only
-def muni_map():
-    base = mapsvg({}, badges=False)
-    # team dot on the 14R near North Beach's center
-    r14 = next(f for f in ROUTES if f['properties']['route'] == 'PM')
-    mx, my = HOODS['North Beach']['c']
-    dx, dy = min((P(c) for line in r14['geometry']['coordinates'] for c in line), key=lambda q: (q[0]-mx)**2 + (q[1]-my)**2)
-    extra = locals_svg() + routes_svg(hi=('PM', 'F')) + (f'<circle cx="{dx:.0f}" cy="{dy:.0f}" r="20" fill="#C42847" stroke="#fff" stroke-width="6"/>')
-    return base.replace('</svg>', extra + '</svg>')
-FRAMES['03-muni'] = page(f'''{bar(MID, "5:12:40")}
-<div class="mapbox" style="left:64px; top:150px; width:1000px; height:880px">{muni_map()}</div>
-<div class="side legend" style="left:1130px; top:210px; width:720px">
-  <div class="eyebrow">Getting around</div>
-  <h2 style="font-size:84px">Muni only.</h2>
-  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">✓</span> Buses, Metro, streetcars, cable cars</div>
-  <div class="row"><span class="chip" style="background:#fff; border:3px solid #C42847; color:#C42847">✕</span> No BART, no Caltrain</div>
-  <div class="row"><span class="chip" style="background:#fff; border:3px solid #C42847; color:#C42847">✕</span> No cars, no bikes</div>
-  <div class="row" style="color:#6A7076; font-size:30px; margin-top:34px">And no running — speedwalk.</div>
-</div>''')
-
-# 4. Photo proof in the app
-MURAL = '''<svg viewBox="0 0 600 420" style="width:100%; display:block; border-radius:14px">
-<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8EC5EC"/><stop offset="1" stop-color="#D8ECF8"/></linearGradient></defs>
-<rect width="600" height="420" fill="url(#sky)"/>
-<circle cx="110" cy="90" r="34" fill="#FFF6D6"/>
-<path d="M0 330 C120 250 220 215 300 212 C390 210 480 250 600 320 V420 H0 Z" fill="#5E9E5A"/>
-<path d="M0 360 C150 320 250 300 330 300 C430 300 520 330 600 360 V420 H0 Z" fill="#437D45"/>
-<rect x="276" y="92" width="48" height="126" fill="#F4F1EA"/>
-<g stroke="#D9D2C3" stroke-width="3">
-<line x1="284" y1="100" x2="284" y2="214"/><line x1="292" y1="100" x2="292" y2="214"/><line x1="300" y1="100" x2="300" y2="214"/>
-<line x1="308" y1="100" x2="308" y2="214"/><line x1="316" y1="100" x2="316" y2="214"/></g>
-<rect x="268" y="84" width="64" height="12" fill="#EDE8DD"/>
-<rect x="280" y="64" width="40" height="22" fill="#F4F1EA"/>
-<g fill="#6F7A86"><rect x="284" y="68" width="6" height="12"/><rect x="297" y="68" width="6" height="12"/><rect x="310" y="68" width="6" height="12"/></g>
-<rect x="262" y="214" width="76" height="10" fill="#EDE8DD"/>
-<circle cx="200" cy="232" r="26" fill="#3F7A3F"/><circle cx="228" cy="226" r="20" fill="#4C8A4A"/>
-<circle cx="382" cy="236" r="24" fill="#3F7A3F"/><circle cx="408" cy="244" r="18" fill="#4C8A4A"/>
-</svg>'''
-def phone(done):
-    photo = MURAL if done else ('<div style="height:295px; border-radius:14px; background:#1C1E21; display:grid; place-items:center; color:#fff; font-size:24px; font-weight:700">'
-             '<div style="text-align:center"><div style="width:84px; height:84px; border-radius:50%; border:6px solid #fff; margin:0 auto 14px"></div>Take photo</div></div>')
-    btn = ('<div style="margin-top:18px; background:#C42847; color:#fff; border-radius:16px; padding:18px; text-align:center; font-size:26px; font-weight:800">✓ Completed · 11:58</div>'
-           '<div style="margin-top:14px; font-size:16px; color:#6A7076">Uploading photo… 72%</div>'
-           '<div style="height:10px; border-radius:5px; background:#E8EAEC; margin-top:6px"><div style="width:72%; height:100%; border-radius:5px; background:#C42847"></div></div>') if done else \
-          ('<div style="margin-top:18px; background:#C42847; color:#fff; border-radius:16px; padding:18px; text-align:center; font-size:26px; font-weight:800">Complete</div>'
-           '<div style="margin-top:14px; font-size:16px; color:#6A7076">Red team · photo required</div>')
-    return f'''<div class="phone" style="position:absolute; left:250px; top:40px; width:520px; height:1000px; border-radius:64px; background:#1C1E21; padding:18px;
-  box-shadow:0 30px 60px rgba(28,30,33,.25)">
- <div style="width:100%; height:100%; border-radius:48px; background:#fff; overflow:hidden; font-family:Inter,system-ui,sans-serif">
-  <div style="display:flex; justify-content:space-between; align-items:center; padding:46px 28px 14px; border-bottom:1px solid #D9DDE1">
-    <b style="color:#C42847; font-size:30px">13</b><b style="font-size:30px; font-variant-numeric:tabular-nums">4:27:12</b><b style="color:#1D6FB8; font-size:30px">11</b></div>
-  <div style="padding:20px 26px">
-   <div style="font-size:15px; color:#6A7076; letter-spacing:.06em; text-transform:uppercase">North Beach · Challenge 3 of 3</div>
-   <div style="font-size:32px; font-weight:800; margin:6px 0 10px">{CH['North Beach'][2]['title']}</div>
-   <div style="font-size:17px; color:#3A4148; line-height:1.45; margin-bottom:16px">Get to Coit Tower. That's it — the hill is the challenge.</div>
-   {photo}
-   {btn}
-  </div></div></div>'''
-FRAMES['04-photo'] = page(f'''{phone(True)}
-<div class="side legend" style="left:960px; top:250px; width:880px">
-  <div class="eyebrow">Proof</div>
-  <h2 style="font-size:84px">Every completion<br>needs a photo.</h2>
-  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">1</span> Finish the challenge, snap the photo</div>
-  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">2</span> Log it in the app — that time counts</div>
-  </div>''')
-
-# 8. Close
-FRAMES['08-end'] = page(f'''
-<div class="side" style="left:110px; top:280px; width:900px">
-  <div style="font-size:150px; font-weight:800; letter-spacing:-.035em; line-height:.92; margin-bottom:30px">
-    <span style="color:#1D6FB8">Clipper</span><br><span style="color:#C42847">Conquest</span></div>
-  <div style="font-size:44px; font-weight:600; color:#6A7076">Tap on. Take over.</div>
-</div>
-<div class="side" style="left:1180px; top:250px; width:560px; text-align:center">
-  <img src="{QR}" style="width:420px; height:420px; image-rendering:pixelated; border:1px solid #D9DDE1; border-radius:18px; padding:20px">
-  <div style="font-size:32px; font-weight:700; margin-top:22px">Every rule and every challenge:</div>
-  <div style="font-size:32px; color:#6A7076">the guide</div>
-</div>''')
-
-
-# ================= full storyboard: one frame per beat =================
-NEIGH = ['Chinatown','Russian Hill','Financial District/South Beach','Nob Hill']
-def mission(S, rows, verdict, clock, tie=False, flip=False):
-    feed = ''.join(
-        (f'<div class="row flip"><span class="time">{t}</span><span style="font-weight:700">{txt}</span></div>' if kind == 'flip' else
-         f'<div class="row"><span class="time">{t}</span><span class="check {kind}">✓</span><span>{txt}</span></div>')
-        for t, kind, txt in rows) or '<div class="row" style="color:#6A7076">No challenges logged yet</div>'
-    m = mapsvg({'North Beach': S} if S else {}, focus=None if tie else 'North Beach', tie='North Beach' if tie else None,
-               view=zoom('North Beach', 2.4), lab=3.2, names=NEIGH, badges=True) if S else \
-        mapsvg({}, focus='North Beach', view=zoom('North Beach', 2.4), names=NEIGH + ['North Beach'], badges=False)
-    return page(f"""{bar(MID, clock)}
-<div class="mapbox" style="left:64px; top:150px; width:880px; height:880px">{m}</div>
-<div class="side feed" style="left:1020px; top:170px; width:840px">
-  <div class="eyebrow">North Beach · timeline</div>{feed}
-  <div class="verdict" style="margin-top:40px">{verdict}</div></div>""")
-B = lambda w: f'<span class="who b">The blue team</span> {w}'
-R = lambda w: f'<span class="who r">The red team</span> {w}'
-
-SB = {}
+# ---------- 0-tap: a Clipper card taps a Muni card reader ----------
 def tri(cx, cy, w, up=True):
     h = w * .82
     return (f'<polygon points="{cx:.1f},{cy - h/2:.1f} {cx + w/2:.1f},{cy + h/2:.1f} {cx - w/2:.1f},{cy + h/2:.1f}"/>' if up else
             f'<polygon points="{cx - w/2:.1f},{cy - h/2:.1f} {cx + w/2:.1f},{cy - h/2:.1f} {cx:.1f},{cy + h/2:.1f}"/>')
+
+
 def clipper_mark(fill='#fff'):
     # the Clipper triangle stack, in a 200x320 card coordinate space
     return (f'<g fill="{fill}">' + tri(70, 110, 16) + tri(70, 127, 20) + tri(68, 149, 30) + tri(64, 177, 34, False)
             + tri(108, 117, 18) + tri(106, 140, 28) + tri(104, 168, 40) + tri(100, 214, 60, False) + '</g>')
+
+
 CARD_SVG = f"""<svg viewBox="0 0 200 320" width="150" height="240"><defs>
 <linearGradient id="ctop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2F63AE"/><stop offset="1" stop-color="#1B3F86"/></linearGradient>
 <linearGradient id="cbot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2D72BC"/><stop offset="1" stop-color="#1A4A94"/></linearGradient>
@@ -338,6 +216,7 @@ CARD_SVG = f"""<svg viewBox="0 0 200 320" width="150" height="240"><defs>
 {clipper_mark()}
 <text x="20" y="298" fill="#fff" font-size="21" font-weight="800" font-family="Inter,system-ui,sans-serif" letter-spacing=".5">CLIPPER</text>
 <text x="112" y="290" fill="#fff" font-size="6" font-weight="700" font-family="Inter,system-ui,sans-serif">SM</text></svg>"""
+# #scr-idle, #scr-ok and #okcheck are animated by tapScene() in render/build.py
 READER_SVG = f"""<svg viewBox="0 0 460 1040" width="460" height="1040"><defs>
 <linearGradient id="steel" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8E959C"/><stop offset=".14" stop-color="#D6D9DC"/>
  <stop offset=".5" stop-color="#BFC4C8"/><stop offset=".86" stop-color="#DFE2E4"/><stop offset="1" stop-color="#8C9399"/></linearGradient>
@@ -379,7 +258,7 @@ SPARKS = ''.join(f'<div class="spark" style="position:absolute; left:960px; top:
                  f'<path d="M0,-10 C1.5,-2 2,-1.5 10,0 C2,1.5 1.5,2 0,10 C-1.5,2 -2,1.5 -10,0 C-2,-1.5 -1.5,-2 0,-10Z" fill="{SPARK_COLORS[i % 6]}"/></svg></div>'
                  for i in range(22))
 RINGS = ''.join(f'<div class="ring" style="position:absolute; left:960px; top:350px; width:0; height:0; border-radius:50%; border:6px solid #2F86D1; opacity:0"></div>' for _ in range(3))
-SB['0-tap'] = page(f"""
+SCENES['0-tap'] = page(f"""
 <div style="position:absolute; inset:0; background:radial-gradient(ellipse 55% 60% at 50% 45%, #EAF3FB 0%, #fff 70%)"></div>
 <div id="reader" style="position:absolute; left:730px; top:24px; width:460px; height:1040px">{READER_SVG}</div>
 {RINGS}{SPARKS}
@@ -387,44 +266,224 @@ SB['0-tap'] = page(f"""
 <div id="card" style="position:absolute; left:0; top:0; width:150px; height:240px; filter:drop-shadow(0 26px 30px rgba(28,30,33,.28));
   transform:translate(1160px,330px) rotate(8deg)">{CARD_SVG}</div>""")
 
-SB['1b-title'] = FRAMES['01-title']
-SB['2a-grey'] = page(f"""<div class="mapbox" style="left:64px; top:64px; width:1000px; height:952px">{mapsvg({}, badges=False)}</div>
+# ---------- 1b-title, 2a-grey: title and the 41 neighborhoods ----------
+SCENES['1b-title'] = page(f'''
+<div class="side" style="left:110px; top:300px; width:760px">
+  <div class="eyebrow">The rules in two minutes</div>
+  <div style="font-size:150px; font-weight:800; letter-spacing:-.035em; line-height:.92; margin:22px 0 30px">
+    <span style="color:#1D6FB8">Clipper</span><br><span style="color:#C42847">Conquest</span></div>
+  <div style="font-size:44px; font-weight:600; color:#6A7076">Tap on. Take over.</div>
+</div>
+<div class="mapbox" style="left:930px; top:60px; width:900px; height:960px">{mapsvg(MID, badges=False)}</div>''')
+SCENES['2a-grey'] = page(f"""<div class="mapbox" style="left:64px; top:64px; width:1000px; height:952px">{mapsvg({}, badges=False)}</div>
 <div class="side" style="left:1130px; top:300px; width:720px">
   <div class="big" style="font-size:180px">41</div>
   <div class="verdict" style="margin-top:8px">neighborhoods.<br><span style="color:#6A7076">Most neighborhoods when the clock hits zero wins.</span></div></div>""")
-SB['2b-challenges'] = FRAMES['02-challenges']
-SB['3a-muni'] = FRAMES['03-muni']
-SB['4a-phone'] = page(f"""{phone(False)}
+
+# ---------- 2b-challenges: North Beach's three challenges ----------
+cards = ''.join(f'''<div class="card"><div class="which">Challenge {i+1} of 3 <span class="tag">{c["type"]}</span></div>
+  <div class="t">{c["title"]}</div></div>''' for i, c in enumerate(CH['North Beach']))
+SCENES['2b-challenges'] = page(f'''
+<div class="mapbox" style="left:64px; top:64px; width:952px; height:952px">{mapsvg({}, sel='North Beach', view=zoom('North Beach', 2.6), badges=False, names=['North Beach','Chinatown','Russian Hill','Financial District/South Beach','Nob Hill','Marina'])}</div>
+<div class="side" style="left:1090px; top:150px; width:760px">
+  <div class="eyebrow">Neighborhood {ORDER.index("North Beach")+1} of 41</div>
+  <h2>North Beach</h2>{cards}
+  <div style="font-size:28px; color:#6A7076; margin-top:22px">Every neighborhood has 3 unique challenges.</div>
+</div>''')
+
+# ---------- 3a-muni: Muni only ----------
+def muni_map():
+    base = mapsvg({}, badges=False)
+    # the red team dot on the Powell-Mason cable car, at its point nearest North Beach's center
+    pm = next(f for f in ROUTES if f['properties']['route'] == 'PM')
+    mx, my = HOODS['North Beach']['c']
+    dx, dy = min((P(c) for line in pm['geometry']['coordinates'] for c in line), key=lambda q: (q[0]-mx)**2 + (q[1]-my)**2)
+    extra = locals_svg() + routes_svg(hi=('PM', 'F')) + (f'<circle cx="{dx:.0f}" cy="{dy:.0f}" r="20" fill="#C42847" stroke="#fff" stroke-width="6"/>')
+    return base.replace('</svg>', extra + '</svg>')
+
+
+SCENES['3a-muni'] = page(f'''{bar(MID, "5:12:40")}
+<div class="mapbox" style="left:64px; top:150px; width:1000px; height:880px">{muni_map()}</div>
+<div class="side legend" style="left:1130px; top:210px; width:720px">
+  <div class="eyebrow">Getting around</div>
+  <h2 style="font-size:84px">Muni only.</h2>
+  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">✓</span> Buses, Metro, streetcars, cable cars</div>
+  <div class="row"><span class="chip" style="background:#fff; border:3px solid #C42847; color:#C42847">✕</span> No BART, no Caltrain</div>
+  <div class="row"><span class="chip" style="background:#fff; border:3px solid #C42847; color:#C42847">✕</span> No cars, no bikes</div>
+  <div class="row" style="color:#6A7076; font-size:30px; margin-top:34px">And no running — speedwalk.</div>
+</div>''')
+
+# ---------- 4a-phone, 4b-upload: photo proof in the app ----------
+MURAL = '''<svg viewBox="0 0 600 420" style="width:100%; display:block; border-radius:14px">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8EC5EC"/><stop offset="1" stop-color="#D8ECF8"/></linearGradient></defs>
+<rect width="600" height="420" fill="url(#sky)"/>
+<circle cx="110" cy="90" r="34" fill="#FFF6D6"/>
+<path d="M0 330 C120 250 220 215 300 212 C390 210 480 250 600 320 V420 H0 Z" fill="#5E9E5A"/>
+<path d="M0 360 C150 320 250 300 330 300 C430 300 520 330 600 360 V420 H0 Z" fill="#437D45"/>
+<rect x="276" y="92" width="48" height="126" fill="#F4F1EA"/>
+<g stroke="#D9D2C3" stroke-width="3">
+<line x1="284" y1="100" x2="284" y2="214"/><line x1="292" y1="100" x2="292" y2="214"/><line x1="300" y1="100" x2="300" y2="214"/>
+<line x1="308" y1="100" x2="308" y2="214"/><line x1="316" y1="100" x2="316" y2="214"/></g>
+<rect x="268" y="84" width="64" height="12" fill="#EDE8DD"/>
+<rect x="280" y="64" width="40" height="22" fill="#F4F1EA"/>
+<g fill="#6F7A86"><rect x="284" y="68" width="6" height="12"/><rect x="297" y="68" width="6" height="12"/><rect x="310" y="68" width="6" height="12"/></g>
+<rect x="262" y="214" width="76" height="10" fill="#EDE8DD"/>
+<circle cx="200" cy="232" r="26" fill="#3F7A3F"/><circle cx="228" cy="226" r="20" fill="#4C8A4A"/>
+<circle cx="382" cy="236" r="24" fill="#3F7A3F"/><circle cx="408" cy="244" r="18" fill="#4C8A4A"/>
+</svg>'''
+
+
+def phone(done):
+    """The app on a phone: before the photo (camera placeholder, Complete) or after (photo, Completed)."""
+    if done:
+        photo = MURAL
+        btn = ('<div style="margin-top:18px; background:#C42847; color:#fff; border-radius:16px; padding:18px; text-align:center; font-size:26px; font-weight:800">✓ Completed · 11:58</div>'
+               '<div style="margin-top:14px; font-size:16px; color:#6A7076">Uploading photo… 72%</div>'
+               '<div style="height:10px; border-radius:5px; background:#E8EAEC; margin-top:6px"><div style="width:72%; height:100%; border-radius:5px; background:#C42847"></div></div>')
+    else:
+        photo = ('<div style="height:295px; border-radius:14px; background:#1C1E21; display:grid; place-items:center; color:#fff; font-size:24px; font-weight:700">'
+                 '<div style="text-align:center"><div style="width:84px; height:84px; border-radius:50%; border:6px solid #fff; margin:0 auto 14px"></div>Take photo</div></div>')
+        btn = ('<div style="margin-top:18px; background:#C42847; color:#fff; border-radius:16px; padding:18px; text-align:center; font-size:26px; font-weight:800">Complete</div>'
+               '<div style="margin-top:14px; font-size:16px; color:#6A7076">Red team · photo required</div>')
+    return f'''<div class="phone" style="position:absolute; left:250px; top:40px; width:520px; height:1000px; border-radius:64px; background:#1C1E21; padding:18px;
+  box-shadow:0 30px 60px rgba(28,30,33,.25)">
+ <div style="width:100%; height:100%; border-radius:48px; background:#fff; overflow:hidden; font-family:Inter,system-ui,sans-serif">
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:46px 28px 14px; border-bottom:1px solid #D9DDE1">
+    <b style="color:#C42847; font-size:30px">13</b><b style="font-size:30px; font-variant-numeric:tabular-nums">4:27:12</b><b style="color:#1D6FB8; font-size:30px">11</b></div>
+  <div style="padding:20px 26px">
+   <div style="font-size:15px; color:#6A7076; letter-spacing:.06em; text-transform:uppercase">North Beach · Challenge 3 of 3</div>
+   <div style="font-size:32px; font-weight:800; margin:6px 0 10px">{CH['North Beach'][2]['title']}</div>
+   <div style="font-size:17px; color:#3A4148; line-height:1.45; margin-bottom:16px">Get to Coit Tower. That's it — the hill is the challenge.</div>
+   {photo}
+   {btn}
+  </div></div></div>'''
+
+
+SCENES['4a-phone'] = page(f"""{phone(False)}
 <div class="side legend" style="left:960px; top:330px; width:880px">
   <div class="eyebrow">Proof</div><h2 style="font-size:84px">Snap it.</h2>
   <div class="row" style="color:#6A7076">Every completion needs a photo.</div></div>""")
-SB['4b-upload'] = FRAMES['04-photo']
-SB['5a-empty'] = mission(None, [], 'Complete its challenges<br>to conquer it.', '4:52:00')
-SB['5b-blue'] = mission((0, 1, 'b'), [('11:04', 'b', B('completes a challenge'))], 'North Beach is<br><span style="color:#1D6FB8">the blue team\'s.</span>', '4:48:21')
-SB['5c-tied1'] = mission((1, 1, 'b'), [('11:04', 'b', B('completes a challenge')), ('11:40', 'r', R('completes a challenge'))], 'The red team is on the board…', '4:31:44')
-SB['5d-flip'] = FRAMES['05-flip']
-SB['5e-tie2'] = mission((2, 2, 't'), [('11:04', 'b', B('completes a challenge')), ('11:40', 'r', R('completes a challenge')),
-                                        ('11:58', 'r', R('completes another')), ('12:30', 'b', B('completes another'))],
-                        'Two–two. So who holds it?', '3:57:10', tie=True)
-SB['6a-tiebreak'] = FRAMES['06-tiebreak']
-HAY = [('10:12', 'b', B('completes a challenge')), ('10:31', 'b', B('completes another')), ('10:50', 'b', B('completes the third'))]
+SCENES['4b-upload'] = page(f'''{phone(True)}
+<div class="side legend" style="left:960px; top:250px; width:880px">
+  <div class="eyebrow">Proof</div>
+  <h2 style="font-size:84px">Every completion<br>needs a photo.</h2>
+  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">1</span> Finish the challenge, snap the photo</div>
+  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">2</span> Log it in the app — that time counts</div>
+  </div>''')
+
+# ---------- 5a-empty .. 6a-tiebreak: conquering North Beach ----------
+NEIGH = ['Chinatown','Russian Hill','Financial District/South Beach','Nob Hill']
+
+
+def mission(S, rows, verdict, clock, tie=False):
+    """North Beach zoomed in beside its timeline. S: its (red, blue, holder) score, or None
+    before anyone has scored. rows: (time, 'r' / 'b' / 'flip', html) timeline rows."""
+    feed = ''.join(
+        (f'<div class="row flip"><span class="time">{t}</span><span style="font-weight:700">{txt}</span></div>' if kind == 'flip' else
+         f'<div class="row"><span class="time">{t}</span><span class="check {kind}">✓</span><span>{txt}</span></div>')
+        for t, kind, txt in rows) or '<div class="row" style="color:#6A7076">No challenges logged yet</div>'
+    if S:
+        m = mapsvg({'North Beach': S}, focus=None if tie else 'North Beach', tie='North Beach' if tie else None,
+                   view=zoom('North Beach', 2.4), lab=3.2, names=NEIGH)
+    else:
+        m = mapsvg({}, focus='North Beach', view=zoom('North Beach', 2.4), names=NEIGH + ['North Beach'], badges=False)
+    return page(f"""{bar(MID, clock)}
+<div class="mapbox" style="left:64px; top:150px; width:880px; height:880px">{m}</div>
+<div class="side feed" style="left:1020px; top:170px; width:840px">
+  <div class="eyebrow">North Beach · timeline</div>{feed}
+  <div class="verdict" style="margin-top:40px">{verdict}</div></div>""")
+
+
+def blue(w):
+    return f'<span class="who b">The blue team</span> {w}'
+
+
+def red(w):
+    return f'<span class="who r">The red team</span> {w}'
+
+
+SCENES['5a-empty'] = mission(None, [], 'Complete its challenges<br>to conquer it.', '4:52:00')
+SCENES['5b-blue'] = mission((0, 1, 'b'), [('11:04', 'b', blue('completes a challenge'))], 'North Beach is<br><span style="color:#1D6FB8">the blue team\'s.</span>', '4:48:21')
+SCENES['5c-tied1'] = mission((1, 1, 'b'), [('11:04', 'b', blue('completes a challenge')), ('11:40', 'r', red('completes a challenge'))], 'The red team is on the board…', '4:31:44')
+SCENES['5d-flip'] = page(f'''{bar(MID, "4:27:12")}
+<div class="mapbox" style="left:64px; top:150px; width:880px; height:880px">{mapsvg({'North Beach': (2, 1, 'r')}, focus='North Beach', view=zoom('North Beach', 2.4), lab=3.2, names=NEIGH)}</div>
+<div class="side feed" style="left:1020px; top:170px; width:840px">
+  <div class="eyebrow">North Beach · timeline</div>
+  <div class="row"><span class="time">11:04</span><span class="check b">✓</span><span><span class="who b">The blue team</span> completes a challenge</span></div>
+  <div class="row"><span class="time">11:40</span><span class="check r">✓</span><span><span class="who r">The red team</span> completes a challenge</span></div>
+  <div class="row"><span class="time">11:58</span><span class="check r">✓</span><span><span class="who r">The red team</span> completes another</span></div>
+  <div class="row flip"><span class="time">11:58</span><span style="font-weight:700">2–1 · <span class="who r">The red team steals North Beach</span></span></div>
+  <div class="verdict" style="margin-top:40px">Complete more than the other team<br>and you <span style="color:#C42847">steal it.</span></div>
+</div>''')
+SCENES['5e-tie2'] = mission((2, 2, 't'), [('11:04', 'b', blue('completes a challenge')), ('11:40', 'r', red('completes a challenge')),
+                                          ('11:58', 'r', red('completes another')), ('12:30', 'b', blue('completes another'))],
+                            'Two–two. So who holds it?', '3:57:10', tie=True)
+
+
+def tl_pos(t, t0=11*60, t1=13*60):
+    """Left offset (%) of clock time t ('HH:MM') on the 11:00-13:00 tiebreak timeline."""
+    h, m = map(int, t.split(':')); return 5 + 90 * ((h*60+m) - t0) / (t1 - t0)
+
+
+TIEBREAK_EVENTS = [('b', '11:04', 1), ('r', '11:40', 1), ('r', '11:58', 2), ('b', '12:30', 2)]   # (team, time, team's count)
+tiebreak_marks = ''.join(f'<div class="tt" style="left:{tl_pos(t):.1f}%">{t}</div><div class="dot {c}" style="left:{tl_pos(t):.1f}%">{n}</div>'
+                         for c, t, n in TIEBREAK_EVENTS)
+SCENES['6a-tiebreak'] = page(f'''{bar(MID, "4:02:45")}
+<div class="mapbox" style="left:64px; top:150px; width:880px; height:880px">{mapsvg({'North Beach': (2, 2, 't')}, tie='North Beach', view=zoom('North Beach', 2.4), lab=3.2, names=NEIGH)}</div>
+<div class="side" style="left:1020px; top:180px; width:840px">
+  <div class="eyebrow">Tie in North Beach</div>
+  <div class="score" style="margin-top:14px"><span class="r">2</span> <span class="x">–</span> <span class="b">2</span></div>
+  <div class="tl"><div class="track"></div>{tiebreak_marks}<div class="flag" style="left:{tl_pos("11:58"):.1f}%">The red team reaches 2 first</div></div>
+  <div class="verdict" style="margin-top:40px">Ties go to whoever got there first.<br><b>The red team keeps North Beach.</b></div>
+</div>''')
+
+# ---------- 6b-sweep: all three locks Hayes Valley ----------
 def hayes_map():
-    m = mapsvg({'Hayes Valley': (0, 3, 'b')}, focus='Hayes Valley', view=zoom('Hayes Valley', 2.6), lab=2.6, badges=False,
+    """Hayes Valley zoomed in, with a hidden lock over it (.lockpop, popped by render/build.py)."""
+    vb = zoom('Hayes Valley', 2.6)
+    m = mapsvg({'Hayes Valley': (0, 3, 'b')}, focus='Hayes Valley', view=vb, lab=2.6, badges=False,
                names=['Western Addition','Haight Ashbury','Mission','South of Market','Tenderloin','Castro/Upper Market'])
-    x, y = HOODS['Hayes Valley']['c']; vb = zoom('Hayes Valley', 2.6); k = vb[2] / 1000
+    x, y = HOODS['Hayes Valley']['c']; k = vb[2] / 1000
     return m.replace('</svg>', '<g class="lockpop" style="transform-box:fill-box; transform-origin:center">'
                                f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{56*k:.0f}" fill="#1C1E21"/>'
                                + lock_glyph(x, y, 60*k) + '</g></svg>')
-SB['6b-sweep'] = page(f"""{bar(MID, "3:40:02")}
+
+
+HAYES_ROWS = [('10:12', 'b', blue('completes a challenge')), ('10:31', 'b', blue('completes another')), ('10:50', 'b', blue('completes the third'))]
+SCENES['6b-sweep'] = page(f"""{bar(MID, "3:40:02")}
 <div class="mapbox" style="left:64px; top:150px; width:880px; height:880px">{hayes_map()}</div>
 <div class="side feed" style="left:1020px; top:170px; width:840px">
   <div class="eyebrow">Hayes Valley · timeline</div>
-  {''.join(f'<div class="row"><span class="time">{t}</span><span class="check {k}">✓</span><span>{w}</span></div>' for t, k, w in HAY)}
+  {''.join(f'<div class="row"><span class="time">{t}</span><span class="check {k}">✓</span><span>{w}</span></div>' for t, k, w in HAYES_ROWS)}
   <div class="row flip"><span class="time">10:50</span><span style="font-weight:700">3 for 3 — <span class="who b">locked for good</span></span></div>
   <div class="verdict" style="margin-top:40px">All three: locked.<br><span style="color:#6A7076">Safe — but it takes a while.</span></div></div>""")
-SB['7a-costs'] = FRAMES['07-steal']
-SB['8a-end'] = FRAMES['08-end']
-FRAMES = SB
-for name, doc in FRAMES.items():
+
+# ---------- 7a-costs: quick or locked ----------
+SCENES['7a-costs'] = page(f'''{bar(MID, "2:14:07")}
+<div class="mapbox" style="left:64px; top:150px; width:1000px; height:880px">{mapsvg(MID, steal=True, route=['Western Addition','Japantown','Pacific Heights','Marina'])}</div>
+<div class="side legend" style="left:1130px; top:190px; width:720px">
+  <div class="eyebrow">Two ways to play</div>
+  <h2 style="font-size:64px">Quick, or locked?</h2>
+  <div class="row"><span class="chip" style="background:#C42847; border:5px solid #fff; box-shadow:0 0 0 2px #C42847; min-width:44px; height:44px; padding:0"></span>
+    <span><b style="color:#C42847">The red team</b> does one challenge each. Fast, but easy to steal.</span></div>
+  <div class="row"><span class="chip" style="background:#1C1E21; color:#fff">{LOCK_HTML}</span>
+    <span><b style="color:#1D6FB8">The blue team</b> does all three. Slow, but locked for good.</span></div>
+</div>''')
+
+# ---------- 8a-end: end card with the guide's QR code ----------
+SCENES['8a-end'] = page(f'''
+<div class="side" style="left:110px; top:280px; width:900px">
+  <div style="font-size:150px; font-weight:800; letter-spacing:-.035em; line-height:.92; margin-bottom:30px">
+    <span style="color:#1D6FB8">Clipper</span><br><span style="color:#C42847">Conquest</span></div>
+  <div style="font-size:44px; font-weight:600; color:#6A7076">Tap on. Take over.</div>
+</div>
+<div class="side" style="left:1180px; top:250px; width:560px; text-align:center">
+  <img src="{QR}" style="width:420px; height:420px; image-rendering:pixelated; border:1px solid #D9DDE1; border-radius:18px; padding:20px">
+  <div style="font-size:32px; font-weight:700; margin-top:22px">Every rule and every challenge:</div>
+  <div style="font-size:32px; color:#6A7076">the guide</div>
+</div>''')
+
+assert list(SCENES) == [b[0] for b in BEATS], 'one scene per beat in beats.py, in order'
+for name, doc in SCENES.items():
     open(os.path.join(HERE, name + '.html'), 'w').write(doc)
-print('frames:', ', '.join(FRAMES), '| mid', tally(MID, 'r'), tally(MID, 'b'))
+print('frames:', ', '.join(SCENES), '| mid', tally(MID, 'r'), tally(MID, 'b'))
