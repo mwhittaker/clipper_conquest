@@ -202,7 +202,7 @@ try:
     title = re.sub(r'<[^>]+>', '', CH['North Beach'][0]['title']).replace('&#x27;', "'")
     check(len(names) == 1 and re.fullmatch(r'Clipper Conquest photos/\d\d-\d\d Red - North Beach - ' + re.escape(title) + r' \(Maya\)\.jpg', names[0]),
           f'photo export names: {names[0]}')
-    open(os.path.join(HERE, '.smoke-replay.ccreplay'), 'wb').write(req('/api/admin/export/replay.zip')[1])
+    open(os.path.join(data, 'smoke-replay.ccreplay'), 'wb').write(req('/api/admin/export/replay.zip')[1])   # to open in the replay site by hand
     check(req('/admin')[0] == 200, 'the admin page opens without a key')
     req('/api/state?team=red&name=Maya')
     players = req('/api/admin/state')[1]['players']
